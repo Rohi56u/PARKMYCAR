@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1792250037794,
+      "tag": "0000_smart_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792368114124,
+      "tag": "0001_panoramic_edwin_jarvis",
+      "breakpoints": true
+    }
+  ]
+}

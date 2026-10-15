@@ -1,0 +1,67 @@
+[
+  {
+    "id": "palika",
+    "url": "https://www.openstreetmap.org/way/1393736859",
+    "version": "1",
+    "sourceUpdatedAt": "2025-06-10T03:47:41Z",
+    "checkedDate": "2026-10-17",
+    "tags": {
+      "access": "yes",
+      "amenity": "parking",
+      "name": "Palika Parking",
+      "parking": "underground"
+    }
+  },
+  {
+    "id": "cp-west",
+    "url": "https://www.openstreetmap.org/way/1234918799",
+    "version": "3",
+    "sourceUpdatedAt": "2026-08-09T08:49:05Z",
+    "checkedDate": "2026-10-17",
+    "tags": {
+      "access": "yes",
+      "amenity": "parking",
+      "fee": "yes",
+      "parking": "street_side"
+    }
+  },
+  {
+    "id": "cp-north",
+    "url": "https://www.openstreetmap.org/way/1533055892",
+    "version": "1",
+    "sourceUpdatedAt": "2026-06-27T17:44:58Z",
+    "checkedDate": "2026-10-17",
+    "tags": {
+      "access": "yes",
+      "amenity": "parking",
+      "fee": "yes",
+      "parking": "surface"
+    }
+  },
+  {
+    "id": "cp-east",
+    "url": "https://www.openstreetmap.org/way/1306321428",
+    "version": "1",
+    "sourceUpdatedAt": "2024-08-08T08:59:26Z",
+    "checkedDate": "2026-10-17",
+    "tags": {
+      "access": "yes",
+      "amenity": "parking",
+      "fee": "no",
+      "parking": "surface"
+    }
+  },
+  {
+    "id": "cp-southwest",
+    "url": "https://www.openstreetmap.org/way/1316315034",
+    "version": "1",
+    "sourceUpdatedAt": "2024-09-18T06:55:42Z",
+    "checkedDate": "2026-10-17",
+    "tags": {
+      "access": "yes",
+      "amenity": "parking",
+      "fee": "yes",
+      "parking": "surface"
+    }
+  }
+]

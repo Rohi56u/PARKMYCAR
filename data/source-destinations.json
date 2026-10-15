@@ -1,0 +1,42 @@
+[
+  {
+    "id": "palika-gate",
+    "name": "Palika Bazaar \u00b7 Gate 1",
+    "coordinates": {
+      "lon": 77.219102,
+      "lat": 28.631259
+    },
+    "sourceUrl": "https://www.openstreetmap.org/node/12098406066",
+    "retrievedAt": "2026-10-10T00:00:00Z"
+  },
+  {
+    "id": "rajiv-gate-2",
+    "name": "Rajiv Chowk \u00b7 Metro Gate 2",
+    "coordinates": {
+      "lon": 77.2193402,
+      "lat": 28.6340158
+    },
+    "sourceUrl": "https://www.openstreetmap.org/node/928592947",
+    "retrievedAt": "2026-10-10T00:00:00Z"
+  },
+  {
+    "id": "jantar-entry",
+    "name": "Jantar Mantar \u00b7 Entry",
+    "coordinates": {
+      "lon": 77.2166062,
+      "lat": 28.6281807
+    },
+    "sourceUrl": "https://www.openstreetmap.org/node/2323525293",
+    "retrievedAt": "2026-10-10T00:00:00Z"
+  },
+  {
+    "id": "regal",
+    "name": "Regal Cinema",
+    "coordinates": {
+      "lon": 77.2169833,
+      "lat": 28.6306708
+    },
+    "sourceUrl": "https://www.openstreetmap.org/node/4543453289",
+    "retrievedAt": "2026-10-10T00:00:00Z"
+  }
+]
