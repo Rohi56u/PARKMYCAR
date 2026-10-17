@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "name": "ParkMyCar Connaught Place directory",
+  "snapshotDate": "2026-10-10",
+  "checkedDate": "2026-10-17",
+  "coverage": {
+    "name": "Connaught Place, New Delhi",
+    "bounds": {
+      "west": 77.212,
+      "south": 28.626,
+      "east": 77.224,
+      "north": 28.638
+    }
+  },
+  "attribution": "\u00a9 OpenStreetMap contributors",
+  "license": "ODbL-1.0",
+  "licenseUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "facilities": [
+    {
+      "id": "palika",
+      "name": "Palika Parking",
+      "nameKind": "official",
+      "type": "underground",
+      "coordinates": {
+        "lat": 28.6313821,
+        "lon": 77.2179101
+      },
+      "locationKind": "area_centroid",
+      "access": "yes",
+      "vehicleRestrictions": null,
+      "hours": null,
+      "price": null,
+      "observations": [],
+      "sources": [
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/1393736859",
+          "retrievedAt": "2026-10-17T00:00:00Z",
+          "supports": [
+            "location",
+            "parking type",
+            "mapped access"
+          ],
+          "license": "ODbL-1.0"
+        },
+        {
+          "label": "New Delhi Municipal Council",
+          "url": "https://www.ndmc.gov.in/departments/pms_sites.aspx",
+          "retrievedAt": "2026-10-16T00:00:00Z",
+          "supports": [
+            "facility name",
+            "parking listing (row 74)"
+          ],
+          "license": "Official factual reference"
+        }
+      ],
+      "reviewFlags": []
+    },
+    {
+      "id": "cp-west",
+      "name": "CP West parking",
+      "nameKind": "area_label",
+      "type": "street_side",
+      "coordinates": {
+        "lat": 28.6323662,
+        "lon": 77.2163371
+      },
+      "locationKind": "area_centroid",
+      "access": "yes",
+      "vehicleRestrictions": null,
+      "hours": null,
+      "price": null,
+      "observations": [],
+      "sources": [
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/1234918799",
+          "retrievedAt": "2026-10-17T00:00:00Z",
+          "supports": [
+            "location",
+            "parking type",
+            "mapped access"
+          ],
+          "license": "ODbL-1.0"
+        }
+      ],
+      "reviewFlags": []
+    },
+    {
+      "id": "cp-north",
+      "name": "CP North parking",
+      "nameKind": "area_label",
+      "type": "surface",
+      "coordinates": {
+        "lat": 28.6340348,
+        "lon": 77.2192007
+      },
+      "locationKind": "area_centroid",
+      "access": "yes",
+      "vehicleRestrictions": null,
+      "hours": null,
+      "price": null,
+      "observations": [],
+      "sources": [
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/1533055892",
+          "retrievedAt": "2026-10-17T00:00:00Z",
+          "supports": [
+            "location",
+            "parking type",
+            "mapped access"
+          ],
+          "license": "ODbL-1.0"
+        }
+      ],
+      "reviewFlags": []
+    },
+    {
+      "id": "cp-east",
+      "name": "CP East parking",
+      "nameKind": "area_label",
+      "type": "surface",
+      "coordinates": {
+        "lat": 28.6333333,
+        "lon": 77.2210363
+      },
+      "locationKind": "area_centroid",
+      "access": "yes",
+      "vehicleRestrictions": null,
+      "hours": null,
+      "price": null,
+      "observations": [],
+      "sources": [
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/1306321428",
+          "retrievedAt": "2026-10-17T00:00:00Z",
+          "supports": [
+            "location",
+            "parking type",
+            "mapped access"
+          ],
+          "license": "ODbL-1.0"
+        }
+      ],
+      "reviewFlags": []
+    },
+    {
+      "id": "cp-southwest",
+      "name": "CP Southwest parking",
+      "nameKind": "area_label",
+      "type": "surface",
+      "coordinates": {
+        "lat": 28.6284451,
+        "lon": 77.2167505
+      },
+      "locationKind": "area_centroid",
+      "access": "yes",
+      "vehicleRestrictions": null,
+      "hours": null,
+      "price": null,
+      "observations": [],
+      "sources": [
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/1316315034",
+          "retrievedAt": "2026-10-17T00:00:00Z",
+          "supports": [
+            "location",
+            "parking type",
+            "mapped access"
+          ],
+          "license": "ODbL-1.0"
+        }
+      ],
+      "reviewFlags": []
+    }
+  ]
+}
