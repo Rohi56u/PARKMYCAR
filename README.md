@@ -233,34 +233,61 @@ The app works fully without this key — AI suggestions simply won't appear.
 
 ```
 parkmycar/
-├── app/
-│   ├── api/v1/
-│   │   ├── [...path]/route.ts     # Main API handler (search, reports, workspace)
-│   │   └── ai-suggest/route.ts    # AI recommendation endpoint
-│   ├── research/page.tsx          # Evidence and sources page
-│   └── workspace/page.tsx         # Operator/admin management UI
-├── components/
-│   ├── ParkApp.tsx                # Main client app
-│   ├── ParkingMap.tsx             # Leaflet map (SSR-safe via next/dynamic)
-│   ├── AiSuggest.tsx              # AI suggestion bar component
-│   └── PlaceSearch.tsx            # India-wide place search
-├── lib/
-│   ├── domain.ts                  # Types + search engine + evidence selection
-│   ├── service.ts                 # API route handlers
-│   ├── store.ts                   # DB abstraction layer + rate limiting
-│   ├── db.ts                      # Universal in-memory DB (no native deps)
-│   ├── geocoding.ts               # Photon place search + cache
-│   └── contracts.ts               # Zod schemas + API error types
-├── data/
-│   └── source-catalog.json        # 5 sourced CP parking facilities
-└── docs/
-    ├── API.md                     # Full API reference
-    ├── ARCHITECTURE.md            # Technical design
-    └── DATA.md                    # Data sources and licensing
+├── app/                    # Next.js App Router pages & API routes
+│   ├── api/v1/             # REST API: parking search, AI suggest
+│   ├── research/           # Research explorer page
+│   ├── workspace/          # Operator workspace dashboard
+│   ├── globals.css         # Design-system tokens & component styles
+│   └── layout.tsx          # Root layout with PWA manifest
+├── components/             # UI components
+│   ├── ParkApp.tsx         # Main search & results interface
+│   ├── ParkingMap.tsx      # Leaflet map with parking overlays
+│   ├── PlaceSearch.tsx     # Geocoding-powered place search
+│   ├── AiSuggest.tsx       # AI parking suggestion bar
+│   ├── Dialog.tsx          # Confirmation & detail dialogs
+│   ├── Workspace.tsx       # Operator dashboard
+│   └── ui/                 # shadcn/ui component library (50+ components)
+├── data/                   # Static data sources
+│   ├── source-catalog.json # Parking facility catalogue
+│   ├── source-destinations.json
+│   └── source-review.json
+├── db/                     # Database layer
+│   ├── schema.ts           # Drizzle ORM schema
+│   └── index.ts            # DB connection helper
+├── docs/                   # Documentation & assets
+│   ├── API.md              # API reference
+│   ├── ARCHITECTURE.md     # System architecture
+│   ├── SECURITY.md         # Security model
+│   ├── RESEARCH.md         # Research notes
+│   ├── TRACEABILITY.md     # Decision traceability
+│   └── slides/             # Product presentation slides
+├── drizzle/                # Database migrations (SQLite/D1)
+├── hooks/                  # React hooks
+├── lib/                    # Core business logic
+│   ├── catalogue.ts        # Parking catalogue loader
+│   ├── geocoding.ts        # Geocoding utilities
+│   ├── places.ts           # Places API integration
+│   ├── service.ts          # Parking search service
+│   ├── domain.ts           # Domain types
+│   ├── contracts.ts        # API contracts
+│   ├── store.ts            # Client state store
+│   ├── db.ts               # Database utilities
+│   ├── client.ts           # API client
+│   └── utils.ts            # Shared utilities
+├── public/                 # Static assets (fonts, icons, PWA manifest)
+├── scripts/                # Developer utilities
+│   └── setup-local.mjs     # Local dev environment setup
+├── tests/                  # Test suite
+│   ├── api.test.ts         # API route tests
+│   ├── domain.test.ts      # Domain logic tests
+│   └── geocoding.test.ts   # Geocoding tests
+├── .github/workflows/      # CI/CD (GitHub Actions)
+├── .env.example            # Environment variable template
+├── netlify.toml            # Netlify deployment config
+├── next.config.ts          # Next.js configuration
+├── drizzle.config.ts       # Drizzle ORM configuration
+└── package.json            # Dependencies & scripts
 ```
-
----
-
 ## API reference
 
 Base URL: `https://parkmycarr.netlify.app/api/v1`
