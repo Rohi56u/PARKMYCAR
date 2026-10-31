@@ -1,6 +1,6 @@
-import { ApiError } from './contracts.ts';
-import { normalizePlaceQuery, type Place } from './places.ts';
-import type { Store } from './store.ts';
+import { ApiError } from './contracts';
+import { normalizePlaceQuery, type Place } from './places';
+import type { Store } from './store';
 
 const DEFAULT_PROVIDER = 'https://photon.komoot.io';
 const CACHE_TTL = 7 * 86400000;

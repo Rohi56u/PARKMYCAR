@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { haversine,selectEvidence,hoursAt,priceFor,searchFacilities,navigationUrl,canManage,inCoverage,type Facility,type Observation,type SearchInput } from '../lib/domain.ts';
-import { initialFacilities } from '../lib/catalogue.ts';
-import { searchSchema,listingSchema,pointSchema } from '../lib/contracts.ts';
+import { haversine,selectEvidence,hoursAt,priceFor,searchFacilities,navigationUrl,canManage,inCoverage,type Facility,type Observation,type SearchInput } from '../lib/domain';
+import { initialFacilities } from '../lib/catalogue';
+import { searchSchema,listingSchema,pointSchema } from '../lib/contracts';
 const now=Date.parse('2026-10-17T12:00:00Z');
 const search:SearchInput={destination:initialFacilities[0].point,radius:1500,arrivalAt:new Date(now).toISOString(),durationMinutes:90,vehicle:'CAR',requirements:[],type:'all',sort:'distance',includeUnknown:true,includeCustomer:false};
 const obs=(extra:Partial<Observation>={}):Observation=>({id:'a',facilityId:'palika',state:'AVAILABLE',evidenceClass:'OPERATOR_REPORTED',source:'Test operator',observedAt:new Date(now-60000).toISOString(),expiresAt:new Date(now+60000).toISOString(),...extra});

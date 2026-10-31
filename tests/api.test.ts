@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { TestDatabase } from './sqlite-adapter.ts';
-import { handleApi,type Identity } from '../lib/service.ts';
-import { initialFacilities } from '../lib/catalogue.ts';
-import { Store } from '../lib/store.ts';
+import { TestDatabase } from './sqlite-adapter';
+import { handleApi,type Identity } from '../lib/service';
+import { initialFacilities } from '../lib/catalogue';
+import { Store } from '../lib/store';
 const now=Date.parse('2026-10-17T12:00:00Z'),owner={userId:'owner-1',displayName:'Test owner'},operator={userId:'operator-1',displayName:'Operator A'},foreign={userId:'operator-2',displayName:'Operator B'};
 const search={destination:initialFacilities[0].point,arrivalAt:new Date(now).toISOString(),radius:1500};
 function setup(){const db=new TestDatabase();const call=async(path:string,body?:unknown,identity:Identity=null,extra:{method?:string;origin?:string;now?:number;rateKey?:string;bootstrap?:boolean;ttl?:number}={})=>{

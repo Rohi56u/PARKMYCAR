@@ -1,5 +1,5 @@
-import type { Database, Statement, SqlResult } from './store.ts';
-import { initialFacilities, CATALOGUE_VERSION } from './catalogue.ts';
+import type { Database, Statement, SqlResult } from './store';
+import { initialFacilities, CATALOGUE_VERSION } from './catalogue';
 
 /**
  * Universal in-memory database engine implementing the Database interface.

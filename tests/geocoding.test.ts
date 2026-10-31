@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizePhoton, photonUrl, findPlaces, type GeocodingOptions } from '../lib/geocoding.ts';
-import { coordinatePlace, mapsSearchUrl, normalizePlaceQuery, placeZoom } from '../lib/places.ts';
-import { navigationUrl } from '../lib/domain.ts';
-import { TestDatabase } from './sqlite-adapter.ts';
-import { Store } from '../lib/store.ts';
-import { handleApi } from '../lib/service.ts';
+import { normalizePhoton, photonUrl, findPlaces, type GeocodingOptions } from '../lib/geocoding';
+import { coordinatePlace, mapsSearchUrl, normalizePlaceQuery, placeZoom } from '../lib/places';
+import { navigationUrl } from '../lib/domain';
+import { TestDatabase } from './sqlite-adapter';
+import { Store } from '../lib/store';
+import { handleApi } from '../lib/service';
 
 // Synthetic provider fixtures are only test data, never a shipped place catalogue.
 const now=Date.parse('2026-10-19T00:00:00Z');

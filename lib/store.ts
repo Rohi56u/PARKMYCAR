@@ -1,6 +1,6 @@
-import { initialFacilities, CATALOGUE_VERSION } from './catalogue.ts';
-import type { Facility, Observation, Point } from './domain.ts';
-import { ApiError } from './contracts.ts';
+import { initialFacilities, CATALOGUE_VERSION } from './catalogue';
+import type { Facility, Observation, Point } from './domain';
+import { ApiError } from './contracts';
 export type Member = { userId:string; role:'ADMIN'|'OPERATOR'|'REVIEWER'; displayName:string; facilityIds:string[] };
 export type SqlResult<T> = { results:T[]; meta?:{changes?:number} };
 export interface Statement { bind(...values:unknown[]):Statement; first<T=Record<string,unknown>>(column?:string):Promise<T|null>; all<T=Record<string,unknown>>():Promise<SqlResult<T>>; run():Promise<SqlResult<never>> }

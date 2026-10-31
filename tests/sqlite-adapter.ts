@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync,readdirSync } from 'node:fs';
-import type { Database,Statement,SqlResult } from '../lib/store.ts';
+import type { Database,Statement,SqlResult } from '../lib/store';
 export class TestDatabase implements Database {
  raw:DatabaseSync;
  constructor(){this.raw=new DatabaseSync(':memory:');this.raw.exec('PRAGMA foreign_keys=ON');for(const file of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())this.raw.exec(readFileSync(new URL(`../drizzle/${file}`,import.meta.url),'utf8'));}

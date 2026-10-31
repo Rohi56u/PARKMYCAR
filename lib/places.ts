@@ -1,4 +1,4 @@
-import type { Point } from './domain.ts';
+import type { Point } from './domain';
 
 export type Place = {
   id: string;

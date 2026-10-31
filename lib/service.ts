@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { findPlaces, type GeocodingOptions } from './geocoding.ts';
-import { Store, type Database, type Member } from './store.ts';
-import { destinations, CATALOGUE_VERSION } from './catalogue.ts';
-import { COVERAGE, canManage, searchFacilities, selectEvidence, haversine, inCoverage, type Facility } from './domain.ts';
-import { ApiError, searchSchema, reportSchema, observationSchema, listingSchema, memberSchema, importSchema, placeSearchSchema, readBody, requireSameOrigin, requireRecent } from './contracts.ts';
+import { findPlaces, type GeocodingOptions } from './geocoding';
+import { Store, type Database, type Member } from './store';
+import { destinations, CATALOGUE_VERSION } from './catalogue';
+import { COVERAGE, canManage, searchFacilities, selectEvidence, haversine, inCoverage, type Facility } from './domain';
+import { ApiError, searchSchema, reportSchema, observationSchema, listingSchema, memberSchema, importSchema, placeSearchSchema, readBody, requireSameOrigin, requireRecent } from './contracts';
 export type Identity = { userId:string; displayName:string } | null;
 export type ServiceOptions = { db:Database; identity:Identity; allowBootstrap:boolean; rateKey:string; now?:number; statusTtlMinutes?:number; geocoding?:GeocodingOptions };
 const headers = { 'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin' };
