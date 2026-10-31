@@ -286,6 +286,17 @@ class MemoryDatabase implements Database {
       return [{ count: 1 }] as T[];
     }
 
+    // 14. INSERT INTO request_limits ... RETURNING expires_at
+    if (/INSERT INTO request_limits/i.test(sql) && /RETURNING expires_at/i.test(sql)) {
+      const [key, nextExpiresAt, currentNow] = params as [string, number, number];
+      const existing = this.requestLimits.get(key);
+      if (!existing || existing.expiresAt <= (currentNow ?? 0)) {
+        this.requestLimits.set(key, { key, count: 1, expiresAt: nextExpiresAt });
+        return [{ expires_at: nextExpiresAt }] as T[];
+      }
+      return [] as T[];
+    }
+
     return [];
   }
 

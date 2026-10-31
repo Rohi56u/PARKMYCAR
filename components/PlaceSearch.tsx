@@ -57,8 +57,9 @@ export const PlaceSearch = forwardRef<PlaceSearchHandle, Props>(function PlaceSe
     setOpen(true); input.current?.focus();
     if (term.length < 2 || term.length > 160) { setError('Enter a place or address using 2–160 characters.'); return null; }
     if (remote?.query === term && remote.places.length) {
-      if (remote.places.length === 1) return remote.places[0];
-      setIndex(-1); return null;
+      const chosen = (index >= 0 && remote.places[index]) ? remote.places[index] : remote.places[0];
+      setOpen(false);
+      return chosen;
     }
     const id = ++generation.current;
     request.current?.abort();
@@ -68,7 +69,12 @@ export const PlaceSearch = forwardRef<PlaceSearchHandle, Props>(function PlaceSe
       const data = await api<{ places: Place[] }>('places/search', { query: term }, 'POST', controller.signal);
       if (id !== generation.current || normalizePlaceQuery(latestValue.current) !== term) return null;
       setRemote({ query: term, places: data.places });
-      if (data.places.length === 1) return data.places[0];
+      if (data.places.length > 0) {
+        const chosen = (index >= 0 && data.places[index]) ? data.places[index] : data.places[0];
+        setOpen(false);
+        return chosen;
+      }
+      setError('No matching places found across India. Please try another place or district.');
       return null;
     } catch (e) {
       if (id === generation.current && e instanceof Error && e.name !== 'AbortError') setError(e.message);
