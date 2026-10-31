@@ -6,6 +6,7 @@ export async function getDb() {
     const env = (cf as { env?: { DB?: unknown } })?.env;
     if (env?.DB) {
       const { drizzle } = await import("drizzle-orm/d1");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return drizzle(env.DB as any, { schema });
     }
   } catch {
