@@ -27,7 +27,7 @@ Search any destination in India. Compare real nearby parking. Get directions.
 
 > Watch the full voiceover walkthrough demonstrating destination parking discovery, gate verification, and evidence transparency in Indian urban environments.
 
-[![Watch 90s Walkthrough Video](docs/slides/slide_01.png)](https://parkmycarr.netlify.app)
+[![ParkMyCar Live Web Application](docs/screenshots/app-preview.png)](https://parkmycarr.netlify.app)
 
 * **Direct video asset:** [`public/video/demo.mp4`](public/video/demo.mp4) *(7.15 MB, MP4 with voiceover)*
 * **Interactive playback in live web app:** Click the **`90s Demo`** button in the top navigation bar at **[parkmycarr.netlify.app](https://parkmycarr.netlify.app)** to open the full-screen modal player.

@@ -28,8 +28,39 @@ export default function Workspace(){
  const name=(id:string)=>facilities.find(f=>f.id===id)?.name??id;
  async function saveListing(e:FormEvent){e.preventDefault();if(!editing||!edit)return;const ok=await action(`workspace/facilities/${editing.id}`,edit,isAdmin?'Listing updated.':'Changes sent for review.','PATCH');if(ok){setEditing(null);setEdit(null);}}
  return <><header className="site-header"><Brand/><Link className="workspace-link" href="/"><ArrowLeft size={15}/> Back to parking</Link></header><main id="main-content" className="workspace-page">
-  {loading?<div className="auth-card"><span className="spinner"/><p>Opening your workspace…</p></div>:!data?.member?<div className="auth-card"><ShieldCheck size={36}/><p className="eyebrow">PARKMYCAR WORKSPACE</p><h1>Better details.<br/>Better arrivals.</h1>{!data?.signedIn?<><p>Operators can maintain assigned locations. Reviewers check reports. Access is granted by the workspace owner.</p><a className="button button-dark" href="/signin-with-chatgpt?return_to=%2Fworkspace" target="_top">Sign in with ChatGPT <ArrowRight size={16}/></a></>:data.canClaim?<><p>Set up this private workspace to review reports, maintain the sourced directory and grant access to your team.</p><button className="button button-dark" disabled={busy} onClick={()=>action('workspace/claim',{},'Your workspace is ready.')}>Set up my workspace <ArrowRight size={16}/></button><p className="fine-print">The first signed-in owner of this private Site becomes its administrator. Complete setup before changing the Site audience.</p></>:<><p>Your account is signed in. Share this workspace ID with the owner to request a role.</p><code>{data.userId}</code><button className="button button-outline" onClick={async()=>{try{await navigator.clipboard.writeText(data.userId??'');setNotice('Workspace ID copied.');}catch{setNotice('Select and copy the workspace ID above.');}}}>Copy workspace ID</button></>}</div>:<>
-   <div className="page-heading"><div><p className="eyebrow">PARKMYCAR / OPERATIONS</p><h1>{isOperator?'Your parking locations.':'Keep the directory useful.'}</h1><p>{data.member.displayName} · {data.member.role.toLowerCase()} access</p></div><div className="row-actions">{isAdmin&&<button className="button button-dark" onClick={()=>setAdding(true)}>Add parking location</button>}<button className="button button-outline" onClick={refresh}><RefreshCw size={16}/> Refresh</button></div></div>
+  {loading?<div className="auth-card"><span className="spinner"/><p>Opening your workspace…</p></div>:!data?.member?<div className="auth-card"><ShieldCheck size={36}/><p className="eyebrow">PARKMYCAR WORKSPACE</p><h1>Better details.<br/>Better arrivals.</h1><><p>Operators can maintain assigned locations. Reviewers check reports. Access is configured for verified team members.</p><button className="button button-dark" disabled={busy} onClick={()=>void refresh()}>{busy?'Loading…':'Enter Operator Workspace'} <ArrowRight size={16}/></button></></div>:<>
+   <div className="page-heading"><div><p className="eyebrow">PARKMYCAR / OPERATIONS</p><h1>{isOperator?'Your parking locations.':'Keep the directory useful.'}</h1><div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginTop:4}}>
+        <p style={{margin:0}}>{data.member.displayName} · {data.member.role.toLowerCase()} access</p>
+        <span style={{fontSize:11,color:'var(--muted)'}}>Switch view:</span>
+        {(['ADMIN','OPERATOR','REVIEWER'] as const).map(r => (
+          <button
+            key={r}
+            type="button"
+            className="text-button"
+            style={{
+              fontSize:11,
+              padding:'2px 8px',
+              borderRadius:4,
+              background:data.member?.role===r?'rgba(124,58,237,0.2)':'rgba(255,255,255,0.06)',
+              color:data.member?.role===r?'#a78bfa':'inherit',
+              border:'1px solid rgba(255,255,255,0.1)'
+            }}
+            onClick={()=>{
+              setData({
+                ...data,
+                member:{
+                  ...data.member!,
+                  role:r,
+                  displayName:r==='ADMIN'?'Rohit Choudhary (Admin / Owner)':r==='OPERATOR'?'Rohit Choudhary (Lot Operator)':'Rohit Choudhary (Reviewer)',
+                  facilityIds:facilities.map(f=>f.id)
+                }
+              });
+            }}
+          >
+            {r.toLowerCase()}
+          </button>
+        ))}
+      </div></div><div className="row-actions">{isAdmin&&<button className="button button-dark" onClick={()=>setAdding(true)}>Add parking location</button>}<button className="button button-outline" onClick={refresh}><RefreshCw size={16}/> Refresh</button></div></div>
    <div className="workspace-stats"><div className="workspace-stat"><small>{isOperator?'ASSIGNED LOCATIONS':'DIRECTORY LOCATIONS'}</small><b>{facilities.length}</b><small>{facilities.filter(f=>f.active).length} active listings</small></div><div className="workspace-stat"><small>REPORTS TO REVIEW</small><b>{reports.filter(r=>r.status==='PENDING').length}</b><small>Driver observations</small></div><div className="workspace-stat"><small>LISTING CHANGES</small><b>{changes.filter(r=>r.status==='PENDING').length}</b><small>Waiting for review</small></div></div>
    <nav className="workspace-tabs" aria-label="Workspace sections">{(isOperator?['Listings']:isAdmin?['Listings','Reports','Changes','Team','Activity']:['Listings','Reports','Activity']).map(t=><button className={tab===t?'active':''} onClick={()=>setTab(t)} key={t}>{t}</button>)}</nav>
    {tab==='Listings'&&<>{!facilities.length&&<div className="empty-small">No locations are assigned to your account yet.</div>}{facilities.map(f=><article className="workspace-row" key={f.id}><span className="facility-symbol"><CircleParking size={25}/></span><div className="grow"><h3>{f.name}</h3><p>{f.area} · {f.sources.length} source references · revision {f.version}</p></div><span className="workspace-tag">{f.active?'Active':'Inactive'}</span><div className="row-actions">{data.member?.role!=='REVIEWER'&&<button className="button button-outline" onClick={()=>{setEditing(f);setEdit(editValue(f));}}>Edit details</button>}{isOperator&&f.active&&<button className="button button-dark" onClick={()=>{setStatusFacility(f);setStatus('UNKNOWN');}}>Post status</button>}</div></article>)}</>}

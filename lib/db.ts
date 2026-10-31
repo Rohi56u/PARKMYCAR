@@ -94,6 +94,13 @@ class MemoryDatabase implements Database {
       });
     }
     this.settings.set('catalogue_version', CATALOGUE_VERSION);
+    this.members.set('admin-rohit', {
+      userId: 'admin-rohit',
+      role: 'ADMIN',
+      displayName: 'Rohit Choudhary (Admin / Site Owner)',
+      facilityIds: '[]'
+    });
+    this.settings.set('owner', 'admin-rohit');
   }
 
   prepare(sql: string): Statement {

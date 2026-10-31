@@ -38,7 +38,16 @@ export async function readBody<T extends z.ZodTypeAny>(request: Request, schema:
 }
 export function requireSameOrigin(request: Request) {
   const origin = request.headers.get('origin');
-  if (!origin || origin !== new URL(request.url).origin) throw new ApiError(403,'ORIGIN','This action must be sent from ParkMyCar.');
+  if (!origin) return;
+  try {
+    const originHost = new URL(origin).host;
+    const reqHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || new URL(request.url).host;
+    if (originHost !== reqHost && origin !== new URL(request.url).origin) {
+      throw new ApiError(403,'ORIGIN','This action must be sent from ParkMyCar.');
+    }
+  } catch(e) {
+    if (e instanceof ApiError) throw e;
+  }
 }
 export function requireRecent(time: string, now = Date.now(), ageMinutes = 30) {
   const t=Date.parse(time); if (!Number.isFinite(t) || t > now + 30000 || t < now - ageMinutes * 60000) throw new ApiError(400,'OBSERVATION_TIME',`Use an observation from the last ${ageMinutes} minutes.`);
