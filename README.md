@@ -23,6 +23,49 @@ Search any destination in India. Compare real nearby parking. Get directions.
 
 ---
 
+## 🎬 90-Second Product Video Walkthrough
+
+> Watch the full voiceover walkthrough demonstrating destination parking discovery, gate verification, and evidence transparency in Indian urban environments.
+
+[![Watch 90s Walkthrough Video](docs/slides/slide_01.png)](https://parkmycarr.netlify.app)
+
+* **Direct video asset:** [`public/video/demo.mp4`](public/video/demo.mp4) *(7.15 MB, MP4 with voiceover)*
+* **Interactive playback in live web app:** Click the **`90s Demo`** button in the top navigation bar at **[parkmycarr.netlify.app](https://parkmycarr.netlify.app)** to open the full-screen modal player.
+
+---
+
+## 📊 Official Product Presentation & Architectural Roadmap (14 Slides)
+
+> The strategic and technical pitch deck presented for Indian smart city mobility, featuring municipal data context (NDMC & BMRCL 2026), 4-step decision flow, and IoT sensor integration.
+
+**📄 [Download Complete Pitch Deck PDF (14 Slides, 17.8 MB)](docs/ParkMyCar_Product_Presentation.pdf)**
+
+<div align="center">
+
+| Slide 02 — The Parking Decision | Slide 03 — 4-Step Decision Flow |
+|:---:|:---:|
+| [![Slide 2](docs/slides/slide_02.png)](docs/ParkMyCar_Product_Presentation.pdf) | [![Slide 3](docs/slides/slide_03.png)](docs/ParkMyCar_Product_Presentation.pdf) |
+| *Municipal problem context (NDMC & BMRCL 2026)* | *Destination to parking in 4 steps* |
+
+| Slide 04 — Usable Shortlist UI | Slide 07 — Report Review Lifecycle |
+|:---:|:---:|
+| [![Slide 4](docs/slides/slide_04.png)](docs/ParkMyCar_Product_Presentation.pdf) | [![Slide 7](docs/slides/slide_07.png)](docs/ParkMyCar_Product_Presentation.pdf) |
+| *Compare up to 3 options side-by-side* | *Time-sensitive review queue with TTL expiry* |
+
+| Slide 08 — Platform Architecture | Slide 11 — Positioning vs. Google Maps |
+|:---:|:---:|
+| [![Slide 8](docs/slides/slide_08.png)](docs/ParkMyCar_Product_Presentation.pdf) | [![Slide 11](docs/slides/slide_11.png)](docs/ParkMyCar_Product_Presentation.pdf) |
+| *Next.js + Worker API + D1/Memory SQLite* | *Why ParkMyCar if Google Maps already exists* |
+
+| Slide 12 — Phased Implementation Roadmap | Slide 13 — Planned Live Sensors Flow |
+|:---:|:---:|
+| [![Slide 12](docs/slides/slide_12.png)](docs/ParkMyCar_Product_Presentation.pdf) | [![Slide 13](docs/slides/slide_13.png)](docs/ParkMyCar_Product_Presentation.pdf) |
+| *Four strict release gates (01 Current → 04 City Scale)* | *Area, capacity, unlisted lots & bay counts* |
+
+</div>
+
+---
+
 ## The problem this solves
 
 Most drivers in India find parking by guessing. Google Maps shows parking dots — no access rules, no vehicle fit check, no honest signal of whether the place is actually open or full. Navigation apps are built for *getting there*, not for *choosing where to park once you arrive*.
