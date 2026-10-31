@@ -13,7 +13,7 @@
     "lint": "eslint app components/ParkApp.tsx components/ParkingMap.tsx components/Dialog.tsx components/Workspace.tsx components/PlaceSearch.tsx lib db",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test": "node --experimental-strip-types --import=./tests/register.mjs --test tests/*.test.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "local:setup": "node scripts/setup-local.mjs",
     "build:vinext": "node scripts/run-framework.mjs build",
