@@ -15,7 +15,7 @@ Search any destination in India. Compare real nearby parking. Get directions.
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.2-06b6d4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
 [![Leaflet Maps](https://img.shields.io/badge/Leaflet-1.9-199900?style=flat-square&logo=leaflet)](https://leafletjs.com/)
-[![AI Powered](https://img.shields.io/badge/AI-Gemini_2.5_Flash-4285f4?style=flat-square&logo=google)](https://ai.google.dev/)
+[![AI Powered](https://img.shields.io/badge/AI-Decision_Engine-7c3aed?style=flat-square)](#)
 
 **[Try it live →](https://parkmycarr.netlify.app)**  |  [How it works](#how-it-works)  |  [What's different](#what-makes-this-different)  |  [Deploy your own](#deploy-your-own)  |  [API Docs](#api-reference)
 
@@ -128,9 +128,9 @@ Driver submits → Review queue → Reviewer decides → Published (or rejected)
 
 Reports carry: who submitted it, when, and when it expires. The expiry is strict — a 15-minute observation cannot survive as "current" for an hour.
 
-### 5. AI Parking Assistant (Gemini 2.5 Flash)
+### 5. Arrival-First AI Decision Intelligence
 
-After each search, the app optionally surfaces a Gemini-powered natural language recommendation — a single sentence that weighs distance, availability state, hours, and price. It degrades gracefully: if no API key is configured, it simply doesn't appear.
+After each search, the app optionally surfaces an AI-powered natural language recommendation — a single sentence that weighs distance, availability state, hours, and price. It degrades gracefully: if no API key is configured, it simply doesn't appear.
 
 ---
 
@@ -143,7 +143,7 @@ sequenceDiagram
     participant API as Worker API
     participant Photon as Photon (Place Search)
     participant DB as In-Memory / D1 DB
-    participant Gemini as Gemini 2.5 Flash
+    participant AI as Decision AI Engine
 
     Driver->>WebApp: Enter destination (e.g. "Palika Bazaar")
     WebApp->>API: POST /api/v1/places/search
@@ -158,8 +158,8 @@ sequenceDiagram
     API-->>WebApp: Ranked results with evidence
 
     WebApp->>API: POST /api/v1/ai-suggest
-    API->>Gemini: Top 3 results + context
-    Gemini-->>API: Natural language recommendation
+    API->>AI: Top 3 results + context
+    AI-->>API: Natural language recommendation
     API-->>WebApp: AI suggestion
 
     Driver->>WebApp: Open directions
@@ -206,13 +206,13 @@ Requirements: **Node.js ≥ 22.13**, **pnpm 11**
 
 ### Enable AI suggestions (optional)
 
-Get a free API key at [aistudio.google.com](https://aistudio.google.com) and set it as an environment variable:
+Provide an AI API key as an environment variable in .env.local or on your deployment host:
 
 ```
-GEMINI_API_KEY=your_key_here
+AI_API_KEY=your_key_here
 ```
 
-On Netlify: Site settings → Environment variables → Add `GEMINI_API_KEY`.  
+On Netlify: Site settings → Environment variables → Add `AI_API_KEY`.  
 The app works fully without this key — AI suggestions simply won't appear.
 
 ### Netlify config (already included)
@@ -236,7 +236,7 @@ parkmycar/
 ├── app/
 │   ├── api/v1/
 │   │   ├── [...path]/route.ts     # Main API handler (search, reports, workspace)
-│   │   └── ai-suggest/route.ts    # Gemini AI recommendation endpoint
+│   │   └── ai-suggest/route.ts    # AI recommendation endpoint
 │   ├── research/page.tsx          # Evidence and sources page
 │   └── workspace/page.tsx         # Operator/admin management UI
 ├── components/
@@ -273,7 +273,7 @@ Base URL: `https://parkmycarr.netlify.app/api/v1`
 | `POST` | `/search` | Find and rank parking near a destination |
 | `GET` | `/facilities/:id` | Get a single facility with current evidence |
 | `POST` | `/reports` | Submit a driver report (requires `Same-Origin`) |
-| `POST` | `/ai-suggest` | Get Gemini AI parking recommendation |
+| `POST` | `/ai-suggest` | Get AI parking recommendation |
 | `GET` | `/workspace` | Operator/admin dashboard data (requires auth) |
 
 ### POST /search — request body
@@ -391,7 +391,7 @@ Copyright © 2026 [Rohit Choudhary (Rohi56u)](https://github.com/Rohi56u)
 - [Photon by Komoot](https://photon.komoot.io) — geocoding API
 - [Leaflet](https://leafletjs.com) — interactive maps
 - [Next.js](https://nextjs.org), [Tailwind CSS](https://tailwindcss.com), [Lucide](https://lucide.dev) — UI stack
-- [Google Gemini API](https://ai.google.dev) — AI suggestions (optional)
+- [Decision Intelligence AI Engine] — contextual parking guidance
 - NDMC, BMRCL, MoHUA — public data sources
 
 ---

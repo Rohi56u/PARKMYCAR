@@ -120,7 +120,7 @@ Provide a direct, authoritative 1-2 sentence recommendation on which option to p
         const text = groqData.choices?.[0]?.message?.content?.trim();
         if (text) {
           return new Response(
-            JSON.stringify({ suggestion: text, engine: 'groq' }),
+            JSON.stringify({ suggestion: text, engine: 'ai' }),
             { status: 200, headers }
           );
         }
@@ -153,7 +153,7 @@ Provide a direct, authoritative 1-2 sentence recommendation on which option to p
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
         if (text) {
           return new Response(
-            JSON.stringify({ suggestion: text, engine: 'gemini' }),
+            JSON.stringify({ suggestion: text, engine: 'ai' }),
             { status: 200, headers }
           );
         }

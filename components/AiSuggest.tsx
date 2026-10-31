@@ -45,7 +45,7 @@ export function AiSuggest({ results, destinationName, vehicle, durationMinutes, 
       body: JSON.stringify({ results: results.slice(0, 3), destinationName, vehicle, durationMinutes }),
       signal: controller.signal,
     })
-      .then(r => r.json())
+      .then(r => r.json() as Promise<{ suggestion?: string | null }>)
       .then((data: { suggestion?: string | null }) => {
         if (data.suggestion) setSuggestion(data.suggestion);
       })

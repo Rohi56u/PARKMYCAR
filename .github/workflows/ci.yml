@@ -27,6 +27,7 @@ jobs:
       - run: pnpm build
       - uses: actions/upload-artifact@v4
         with:
-          name: parkmycar-worker
-          path: dist/
+          name: parkmycar-build
+          path: .next/
+          if-no-files-found: ignore
           retention-days: 7
