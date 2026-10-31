@@ -1,4 +1,3 @@
-import { getChatGPTUser } from '../../../chatgpt-auth';
 import { handleApi } from '../../../../lib/service';
 import { getDatabase } from '../../../../lib/db';
 import type { Database } from '../../../../lib/store';
@@ -20,15 +19,11 @@ async function handler(request: Request) {
   // Universal database: uses Cloudflare D1 if available, else resilient in-memory SQLite store
   const db = (await getDatabase(cfEnv.DB)) as unknown as Database;
 
-  const trusted =
-    cfEnv.PARKMYCAR_TRUSTED_SITES_GATEWAY === '1' ||
-    process.env.PARKMYCAR_TRUSTED_SITES_GATEWAY === '1';
-
   const defaultUser = {
     userId: 'admin-rohit',
     displayName: 'Rohit Choudhary (Admin / Site Owner)'
   };
-  const user = (trusted ? await getChatGPTUser() : null) ?? defaultUser;
+  const user = defaultUser;
 
   const rawKey =
     user?.userId ??
