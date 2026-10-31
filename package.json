@@ -4,7 +4,7 @@
   "private": true,
   "description": "Destination Parking Discovery & Decision Intelligence Engine for India — Route detour, pedestrian walk distance, real-time evidence integrity & zero false guarantees.",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "dev": "next dev",
@@ -75,5 +75,5 @@
       "sharp": "0.35.4"
     }
   },
-  "packageManager": "pnpm@9.15.4"
+  "packageManager": "pnpm@11.25.0"
 }
