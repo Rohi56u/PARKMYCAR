@@ -44,11 +44,40 @@ export default function ParkApp() {
   useEffect(()=>{if(!toast)return;const id=setTimeout(()=>setToast(''),4500);return()=>clearTimeout(id);},[toast]);
   async function runSearch(input:SearchInput) {
     const id=++searchId.current;controller.current?.abort();const c=new AbortController();controller.current=c;setLoading(true);setError('');setLastSearch(input);setResults([]);
-    try{const r=await api<{results:Result[]}>('search',input,'POST',c.signal);if(id!==searchId.current)return;setResults(r.results);setLastSearch(input);setSelected(r.results[0]?.id??null);setAiSearchKey(Date.now().toString());}
+    try{
+      const [searchRes, facRes] = await Promise.all([
+        api<{results:Result[]}>('search',input,'POST',c.signal).catch(e => {
+          if (e instanceof Error && e.name === 'AbortError') throw e;
+          return null;
+        }),
+        api<{facilities:Facility[];results:Result[]}>(`facilities?lat=${input.destination.lat}&lng=${input.destination.lng}&radius=${input.radius}`,undefined,'GET',c.signal).catch(e => {
+          if (e instanceof Error && e.name === 'AbortError') throw e;
+          return null;
+        })
+      ]);
+      if(id!==searchId.current)return;
+      if (facRes?.facilities) {
+        setCatalogue(prev => {
+          const ids = new Set(prev.map(f => f.id));
+          const additions = facRes.facilities.filter(f => !ids.has(f.id));
+          return additions.length ? [...prev, ...additions] : prev;
+        });
+      }
+      const finalResults = (searchRes?.results && searchRes.results.length > 0) ? searchRes.results : (facRes?.results ?? []);
+      setResults(finalResults);
+      setLastSearch(input);
+      setSelected(finalResults[0]?.id??null);
+      setAiSearchKey(Date.now().toString());
+    }
     catch(e){if(e instanceof Error&&e.name!=='AbortError')setError(e.message);}
     finally{if(id===searchId.current)setLoading(false);}
   }
-  function setChosen(p:Destination){setDestination(p);setQuery(p.name);setForm(f=>({...f,destination:p.point}));}
+  function setChosen(p:Destination){
+    setDestination(p);
+    setQuery(p.name);
+    setForm(f=>({...f,destination:p.point}));
+    setLastSearch(f=>({...f,destination:p.point}));
+  }
   function executeFor(p:Destination,origin:Point|undefined=form.origin){
     let arrivalAt=new Date().toISOString();
     if(arrival==='later'){const time=Date.parse(customArrival?`${customArrival}:00+05:30`:'');if(!Number.isFinite(time)){setError('Choose an arrival date and time.');setResults([]);setLastSearch(f=>({...f,destination:p.point}));return;}arrivalAt=new Date(time).toISOString();}

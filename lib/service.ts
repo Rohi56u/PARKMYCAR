@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { findPlaces, type GeocodingOptions } from './geocoding';
 import { Store, type Database, type Member } from './store';
 import { destinations, CATALOGUE_VERSION } from './catalogue';
-import { COVERAGE, canManage, searchFacilities, selectEvidence, haversine, inCoverage, type Facility, type Point } from './domain';
+import { COVERAGE, canManage, searchFacilities, selectEvidence, haversine, inCoverage, type Facility, type Point, type SearchInput } from './domain';
 import { ApiError, searchSchema, reportSchema, observationSchema, listingSchema, memberSchema, importSchema, placeSearchSchema, readBody, requireSameOrigin, requireRecent } from './contracts';
 export type Identity = { userId:string; displayName:string } | null;
 export type ServiceOptions = { db:Database; identity:Identity; allowBootstrap:boolean; rateKey:string; now?:number; statusTtlMinutes?:number; geocoding?:GeocodingOptions };
@@ -174,9 +174,45 @@ export async function handleApi(request:Request,options:ServiceOptions):Promise<
       const observations = await store.observations(new Date(now).toISOString());
       return json({results:searchFacilities(facilities,observations,input,now),coverage:COVERAGE,serverTime:new Date(now).toISOString(),distanceBasis:'straight_line',catalogueVersion:CATALOGUE_VERSION});
     }
-    if(method==='GET'&&path[0]==='facilities'&&path[1]) {
-      const f=await store.facility(path[1]);if(!f.active||f.access==='PRIVATE'||f.access==='PERMIT')throw new ApiError(404,'NOT_FOUND','This parking location is no longer listed.');
-      const observations=await store.observations(new Date(now).toISOString());return json({facility:f,evidence:selectEvidence(observations.filter(o=>o.facilityId===f.id),now)});
+    if(method==='GET'&&path[0]==='facilities') {
+      if(path[1]) {
+        const f=await store.facility(path[1]);if(!f.active||f.access==='PRIVATE'||f.access==='PERMIT')throw new ApiError(404,'NOT_FOUND','This parking location is no longer listed.');
+        const observations=await store.observations(new Date(now).toISOString());return json({facility:f,evidence:selectEvidence(observations.filter(o=>o.facilityId===f.id),now)});
+      }
+      if(path.length===1) {
+        const latParam = url.searchParams.get('lat');
+        const lngParam = url.searchParams.get('lng');
+        const radiusParam = url.searchParams.get('radius');
+        if(latParam && lngParam) {
+          const lat = Number(latParam), lng = Number(lngParam);
+          if(!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 6 || lat > 38 || lng < 68 || lng > 98) {
+            throw new ApiError(400, 'BAD_REQUEST', 'Coordinates must be valid and within India.');
+          }
+          const radius = Math.max(100, Math.min(50000, Number(radiusParam) || 1000));
+          const point: Point = { lat, lng };
+          let facilities = await store.facilities(point, radius);
+          if (facilities.length === 0) {
+            facilities = await ensureFacilitiesForDestination(store, point, radius);
+          }
+          const defaultInput: SearchInput = {
+            destination: point,
+            radius,
+            arrivalAt: new Date(now).toISOString(),
+            durationMinutes: 120,
+            vehicle: 'CAR',
+            requirements: [],
+            type: 'all',
+            sort: 'distance',
+            includeUnknown: true,
+            includeCustomer: false
+          };
+          const observations = await store.observations(new Date(now).toISOString());
+          const results = searchFacilities(facilities, observations, defaultInput, now);
+          return json({ facilities, results });
+        }
+        const facilities = (await store.facilities()).filter(f => f.active && f.access !== 'PRIVATE' && f.access !== 'PERMIT');
+        return json({ facilities, results: [] });
+      }
     }
     if(method==='POST'&&path[0]==='reports') {
       requireSameOrigin(request);await store.limit(`report:${options.rateKey}`,3,600,now);
