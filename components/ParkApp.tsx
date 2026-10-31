@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowDownUp, ArrowRight, Bookmark, Car, Check, CheckCheck, Clock3, Compass, ExternalLink, Flag, Footprints, Info, LocateFixed, MapPin, Navigation, Search, ShieldCheck, SlidersHorizontal, X, Map, List, CircleHelp, CircleParking } from 'lucide-react';
 import { Dialog } from './Dialog';
 import dynamic from 'next/dynamic';
+import { AiSuggest } from './AiSuggest';
 const ParkingMap = dynamic(() => import('./ParkingMap').then(mod => mod.ParkingMap), { ssr: false });
 import { PlaceSearch, type PlaceSearchHandle } from './PlaceSearch';
 import { type Place } from '../lib/places';
@@ -20,6 +21,7 @@ export default function ParkApp() {
   const [places,setPlaces]=useState(initialDestinations),[destination,setDestination]=useState<Destination>(initialDestinations[0]),[query,setQuery]=useState(initialDestinations[0].name);
   const [form,setForm]=useState<SearchInput>(initialForm),[lastSearch,setLastSearch]=useState<SearchInput>(initialForm),[results,setResults]=useState<Result[]>([]),[catalogue,setCatalogue]=useState<Facility[]>([]);
   const [loading,setLoading]=useState(true),[error,setError]=useState(''),[saved,setSaved]=useState<string[]>([]),[selected,setSelected]=useState<string|null>(null),[detail,setDetail]=useState<Result|Facility|null>(null);
+  const [aiSearchKey, setAiSearchKey]=useState('');
   const [modal,setModal]=useState<'filters'|'compare'|'about'|'report'|null>(null),[tab,setTab]=useState<'nearby'|'saved'>('nearby'),[mobileView,setMobileView]=useState<'list'|'map'>('list');
   const [pinMode,setPinMode]=useState(false),[originExpanded,setOriginExpanded]=useState(false),[originText,setOriginText]=useState(''),[geoLoading,setGeoLoading]=useState(false),[toast,setToast]=useState(''),[reportType,setReportType]=useState('FULL'),[sending,setSending]=useState(false),[reportDone,setReportDone]=useState(false);
   const [originPlace,setOriginPlace]=useState<Place|null>(null),[resolving,setResolving]=useState(false);
@@ -42,7 +44,7 @@ export default function ParkApp() {
   useEffect(()=>{if(!toast)return;const id=setTimeout(()=>setToast(''),4500);return()=>clearTimeout(id);},[toast]);
   async function runSearch(input:SearchInput) {
     const id=++searchId.current;controller.current?.abort();const c=new AbortController();controller.current=c;setLoading(true);setError('');setLastSearch(input);setResults([]);
-    try{const r=await api<{results:Result[]}>('search',input,'POST',c.signal);if(id!==searchId.current)return;setResults(r.results);setLastSearch(input);setSelected(r.results[0]?.id??null);}
+    try{const r=await api<{results:Result[]}>('search',input,'POST',c.signal);if(id!==searchId.current)return;setResults(r.results);setLastSearch(input);setSelected(r.results[0]?.id??null);setAiSearchKey(Date.now().toString());}
     catch(e){if(e instanceof Error&&e.name!=='AbortError')setError(e.message);}
     finally{if(id===searchId.current)setLoading(false);}
   }
@@ -98,6 +100,7 @@ export default function ParkApp() {
         <div className={`discovery-grid view-${mobileView}`}>
           <aside className="results-panel" aria-label="Parking results" aria-busy={loading}>
             {tab==='saved'&&saved.length>0&&<button className="text-button" style={{fontSize:10,marginBottom:14}} onClick={()=>{setSaved([]);storeSaved([]);}}>Clear shortlist</button>}<div className="results-heading"><div><h2>{tab==='nearby'?'A good place to start.':'Your parking plan.'}</h2><p>{tab==='nearby'?`Parking within ${distanceLabel(lastSearch.radius)} of your destination`:'Up to three options, saved on this device'}</p></div><span className="result-total">{visible.length}</span></div>
+            {results.length>0&&tab==='nearby'&&<AiSuggest results={results} destinationName={destination.name} vehicle={form.vehicle} durationMinutes={form.durationMinutes} searchKey={aiSearchKey}/>}
             {error&&<div className="error-card" role="alert"><Info size={18}/><p>{error}</p><button onClick={()=>void submit()}>Try again</button></div>}
             {loading?<div className="skeleton-list" aria-label="Loading parking results">{[1,2,3].map(n=><div className="skeleton-card" key={n}><i/><span/><span/><b/></div>)}</div>:!visible.length?<div className="empty-state"><CircleParking size={40}/><h3>{tab==='saved'?'Good plans have a backup.':'No matching parking here yet.'}</h3><p>{tab==='saved'?'Tap the bookmark on a parking card to build your shortlist.':'Your destination is ready for directions. Our parking catalogue currently covers Connaught Place, New Delhi; other places may have parking that is not listed here yet.'}</p><button className="button button-dark" onClick={()=>{if(tab==='saved')setTab('nearby');else{const input={...initialForm(),destination:initialDestinations[0].point,radius:1500};setChosen(initialDestinations[0]);setForm(input);void runSearch(input);}}}>{tab==='saved'?'Explore parking':'Explore Connaught Place'}<ArrowRight size={16}/></button></div>:<div className="parking-cards">{visible.map((f,index)=>{const e=evidenceNow(f.evidence);return <article className={`parking-card ${selected===f.id?'selected':''}`} key={f.id} onMouseEnter={()=>setSelected(f.id)}>
               <div className="card-top"><span className={`facility-symbol ${f.type}`}><CircleParking size={25}/><small>{String(index+1).padStart(2,'0')}</small></span><div><span className="card-kicker">{typeNames[f.type]}</span><button className="card-title" onClick={()=>showDetails(f)}>{f.name}</button><p>Connaught Place</p></div><button className={`save-button ${saved.includes(f.id)?'saved':''}`} aria-label={`${saved.includes(f.id)?'Remove':'Save'} ${f.name}`} aria-pressed={saved.includes(f.id)} onClick={()=>toggleSave(f.id)}><Bookmark size={18} fill={saved.includes(f.id)?'currentColor':'none'}/></button></div>

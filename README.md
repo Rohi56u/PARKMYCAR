@@ -1,297 +1,362 @@
 <div align="center">
 
-# 🚗 ParkMyCar
+<img src="https://img.shields.io/badge/🚗_ParkMyCar-Find_parking._Finish_the_journey.-1a1a2e?style=for-the-badge&labelColor=1a1a2e&color=7c3aed" alt="ParkMyCar"/>
 
-### Destination Parking Discovery & Decision Intelligence Engine for India
+# ParkMyCar
 
-[![Deploy with Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Rohi56u/PARKMYCAR)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Rohi56u/PARKMYCAR)
+**The parking decision tool built for Indian drivers.**  
+Search any destination in India. Compare real nearby parking. Get directions.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.2-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle-ORM-C5F74F?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
-[![Leaflet](https://img.shields.io/badge/Leaflet-1.9-199900?logo=leaflet&logoColor=white)](https://leafletjs.com/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Live App](https://img.shields.io/badge/🌐_Live_App-parkmycarr.netlify.app-7c3aed?style=flat-square)](https://parkmycarr.netlify.app)
+[![Deploy Status](https://img.shields.io/badge/Netlify-Deployed-00C7B7?style=flat-square&logo=netlify)](https://parkmycarr.netlify.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.3-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.2-06b6d4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
+[![Leaflet Maps](https://img.shields.io/badge/Leaflet-1.9-199900?style=flat-square&logo=leaflet)](https://leafletjs.com/)
+[![AI Powered](https://img.shields.io/badge/AI-Gemini_2.5_Flash-4285f4?style=flat-square&logo=google)](https://ai.google.dev/)
 
-<p align="center">
-  <b>A route to your destination. Clarity to choose parking.</b><br/>
-  Compare suitable parking options near your destination with driving detour, pedestrian walk distance, access gates, verified price basis, and transparent evidence freshness — with zero false certainty.
-</p>
-
-<p align="center">
-  🌐 <b>Live Web App:</b> <a href="https://parkmycarr.netlify.app"><b>https://parkmycarr.netlify.app</b></a>
-</p>
-
-[Explore Features](#-key-features) •
-[System Architecture](#-system-architecture) •
-[Quickstart](#-quickstart-guide) •
-[Deployment Guide](#-zero-config-deployment) •
-[API Reference](#-api-specification) •
-[Dual License](#-licensing)
+**[Try it live →](https://parkmycarr.netlify.app)**  |  [How it works](#how-it-works)  |  [What's different](#what-makes-this-different)  |  [Deploy your own](#deploy-your-own)  |  [API Docs](#api-reference)
 
 </div>
 
 ---
 
-## 📌 Overview
+## The problem this solves
 
-Most navigation apps treat parking as an afterthought: placing a static pin on a venue centroid that reveals nothing about whether the entrance is open, if your vehicle fits, or how far the physical walk is to your destination gate.
+Most drivers in India find parking by guessing. Google Maps shows parking dots — no access rules, no vehicle fit check, no honest signal of whether the place is actually open or full. Navigation apps are built for *getting there*, not for *choosing where to park once you arrive*.
 
-**ParkMyCar** is an arrival-first decision support layer engineered for Indian urban mobility. It pairs whole-India place search with an auditable parking directory (pioneered in Connaught Place, New Delhi) to answer the driver's real pre-arrival questions:
+**ParkMyCar is built around the single moment that matters: arriving at a destination and needing to make a real parking decision.**
 
-1. **"Can I actually enter?"** — Differentiates public lots from private, permit-only, or customer-restricted zones, with explicit height clearance and vehicle compatibility.
-2. **"What is the real walk?"** — Separates vehicular route detour from the pedestrian walk from the parking gate to the destination entrance.
-3. **"How fresh is this information?"** — Implements an evidence-first status engine: operator updates and community reports carry visible timestamps and strict TTL expiration. If data is missing or stale, it clearly states **`Availability not confirmed`** instead of guessing.
+Before you arrive, you need answers to three specific questions:
 
----
-
-## ⚡ Key Features
-
-| Capability | Engineering Implementation | User Benefit |
-| :--- | :--- | :--- |
-| 📍 **All-India Place Search** | Photon API backed by OpenStreetMap with `countrycode=IN` bounding. | Search cities, towns, villages, and landmarks across India with full state/district context. |
-| 🛡️ **Evidence Integrity State Machine** | Strict decay rules: Operator updates, Driver reports, and Static records. | Zero fake "live" badges. Stale reports automatically decay to *Availability not confirmed*. |
-| 🚶 **Arrival Fit & Walking Proximity** | PostGIS/Spatial bounding queries + straight-line & Google Maps navigation hand-offs. | Make informed choices based on gate proximity and pedestrian walking distance. |
-| 🏷️ **Transparent Rate Cards** | Relational tariff rules with currency (`₹`), billing interval, and verification timestamps. | Know exact parking tariffs before arrival. Missing pricing is marked `Unknown`, never assumed `Free`. |
-| 🗺️ **Interactive Leaflet Maps** | Client-safe, dynamic SSR-resistant Leaflet maps with custom SVG vector pins and vector fallback. | Smooth mobile-first map exploration across low-end mobile devices and high-DPI screens. |
-| 🏢 **Operator & Admin Portal** | Role-based authentication (Admin, Operator, Reviewer), listing edits, and moderation queues. | Facility managers can publish official updates; crowd reports undergo review before publication. |
-| 🔒 **Privacy-First Telemetry** | Ephemeral rate-limiting hashes, optional one-time GPS, no persistent trip coordinate storage. | Full search functionality without sign-up, tracking cookies, or license plate capture. |
+| Question | What apps show today | What ParkMyCar shows |
+|---|---|---|
+| **Can I use this parking?** | A pin. Maybe a label. | Access type (Public / Customers only / Permit / Unknown), vehicle compatibility, entry notes |
+| **Which option fits my trip?** | One suggestion, if any | Up to 30 ranked options — by distance or price — with a save shortlist for alternatives |
+| **How current is this?** | No indication | Evidence source, timestamp, TTL expiry. If data is stale: **"Availability not confirmed"** |
 
 ---
 
-## 🏗️ System Architecture
+## What makes this different
 
-ParkMyCar is built as a **Lean Modular Monolith** that runs universally on **Node.js, Netlify, Vercel, Docker, and Cloudflare Workers**:
+### 1. Evidence-First Architecture — No Fake Availability
+
+Every parking status shown has a **traceable source, a reporter, and an expiry time**. When a report expires, the state resets to `UNKNOWN` — it does not roll over as "still available."
+
+```
+STATIC_LISTING      → Mapped from OSM/NDMC. No live status.
+OPERATOR_REPORTED   → Posted by a verified operator for this facility.
+COMMUNITY_REPORTED  → Submitted by a driver, reviewed before publishing.
+```
+
+There is no interpolation, no guessing, no stale data dressed as fresh data. This is the core design principle.
+
+### 2. Access Gate Differentiation — Not Just "Parking"
+
+The app distinguishes between five access states that matter to different drivers:
+
+```
+PUBLIC           → Anyone can park
+CUSTOMERS_ONLY   → Restricted to customers of the venue
+PRIVATE          → Not shown in public results
+PERMIT           → Not shown in public results  
+UNKNOWN          → Shown with "Check access before arrival" warning
+```
+
+This is not a cosmetic filter. Private and permit-only facilities are excluded from search results. You won't navigate to a parking area that won't let you in.
+
+### 3. Four-Step Decision Flow
+
+```
+Search destination → Filter by vehicle/type/features → Compare up to 3 → Open directions
+```
+
+The flow ends with **two sets of directions**: drive to parking, then walk to your destination. The walking leg is shown separately because it is the leg most apps ignore.
+
+### 4. Reviewed Report Pipeline
+
+Driver reports don't publish instantly. They enter a review queue:
+
+```
+Driver submits → Review queue → Reviewer decides → Published (or rejected)
+```
+
+Reports carry: who submitted it, when, and when it expires. The expiry is strict — a 15-minute observation cannot survive as "current" for an hour.
+
+### 5. AI Parking Assistant (Gemini 2.5 Flash)
+
+After each search, the app optionally surfaces a Gemini-powered natural language recommendation — a single sentence that weighs distance, availability state, hours, and price. It degrades gracefully: if no API key is configured, it simply doesn't appear.
+
+---
+
+## How it works
 
 ```mermaid
-flowchart TD
-    subgraph Clients["Driver & Operator Clients"]
-        PWA["Responsive Next.js PWA\n(Mobile-First / React 19)"]
-        Portal["Operator & Admin Workspace\n(Role-Guarded Portal)"]
-    end
+sequenceDiagram
+    participant Driver
+    participant WebApp as Next.js App
+    participant API as Worker API
+    participant Photon as Photon (Place Search)
+    participant DB as In-Memory / D1 DB
+    participant Gemini as Gemini 2.5 Flash
 
-    subgraph AppServer["Next.js Server / Serverless API (/api/v1/*)"]
-        Router["API Route Handler\n(app/api/v1/[...path]/route.ts)"]
-        Service["Service Layer\n(lib/service.ts)"]
-        Geo["Geocoding & Place Engine\n(lib/geocoding.ts)"]
-        Auth["ChatGPT / Header Auth\n(app/chatgpt-auth.ts)"]
-    end
+    Driver->>WebApp: Enter destination (e.g. "Palika Bazaar")
+    WebApp->>API: POST /api/v1/places/search
+    API->>Photon: Query India place data
+    Photon-->>API: GeoJSON features
+    API-->>WebApp: Normalised place list
 
-    subgraph DataLayer["Universal Storage Layer"]
-        DBProvider["Universal Database Provider\n(lib/db.ts)"]
-        D1["Cloudflare D1\n(Edge Runtime)"]
-        SQLite["Node.js SQLite\n(node:sqlite)"]
-        MemDB["Resilient In-Memory DB\n(Zero-Config Serverless / Node)"]
-    end
+    Driver->>WebApp: Select place + set arrival time, vehicle
+    WebApp->>API: POST /api/v1/search
+    API->>DB: Query facilities within radius
+    API->>DB: Query non-expired observations
+    API-->>WebApp: Ranked results with evidence
 
-    subgraph External["External Integrations"]
-        Photon["Photon Geocoding\n(OpenStreetMap IN)"]
-        Nav["Google Maps Navigation\n(Turn-by-turn External Hand-off)"]
-    end
+    WebApp->>API: POST /api/v1/ai-suggest
+    API->>Gemini: Top 3 results + context
+    Gemini-->>API: Natural language recommendation
+    API-->>WebApp: AI suggestion
 
-    PWA -->|Search, Bootstrap, Reports| Router
-    Portal -->|Claim, Edit, Status, Moderate| Router
-
-    Router --> Auth
-    Router --> Service
-    Service --> Geo
-    Geo --> Photon
-
-    Service --> DBProvider
-    DBProvider -->|Cloudflare| D1
-    DBProvider -->|Node >= 22| SQLite
-    DBProvider -->|Netlify / Vercel / Node 20| MemDB
-
-    PWA -.->|Deep Link Directions| Nav
+    Driver->>WebApp: Open directions
+    WebApp-->>Driver: Google Maps (drive to parking → walk to destination)
 ```
 
 ---
 
-## 📊 Availability Truth Table
+## Live demo
 
-ParkMyCar operates under strict domain invariants to eliminate false certainty:
+**→ [https://parkmycarr.netlify.app](https://parkmycarr.netlify.app)**
 
-```
-┌────────────────────────────┬─────────────────────────────┬──────────────────────────────────────────────────┐
-│ Observation Source         │ UI Evidence Badge           │ Operational Semantics                            │
-├────────────────────────────┼─────────────────────────────┼──────────────────────────────────────────────────┤
-│ Static Directory Record    │ Mapped Parking (Neutral)    │ Base directory pin. Availability not confirmed.  │
-│ Operator-Verified Update   │ Operator updated · [Time]   │ Published by assigned lot manager within TTL.   │
-│ Driver Crowd Report        │ Community reported · [Age]  │ Peer report approved through moderation queue.   │
-│ Stale / Expired Status     │ Availability not confirmed  │ Observation exceeded TTL (5-60 min). Reverts.    │
-│ Sensor Feed / ML Predict   │ [Gated Future Modules]      │ Strictly excluded from MVP until ground truth.   │
-└────────────────────────────┴─────────────────────────────┴──────────────────────────────────────────────────┘
-```
+**What you can do right now:**
+- Search any destination in India by name, landmark, neighbourhood, or city
+- View 5 sourced parking facilities in Connaught Place, New Delhi
+- Filter by vehicle type, parking type, radius, and features
+- Save up to 3 options to a shortlist and compare them side by side
+- Open driving directions to any parking facility
+- Report an issue with a listing (enters the moderated review queue)
+- View evidence source and timestamp for every status shown
 
-> **Non-Negotiable Invariants:**
-> * `UNKNOWN` is fundamentally different from `FREE`, `PUBLIC`, `OPEN`, or `VACANT`.
-> * An unverified map listing never implies an available empty parking bay.
-> * No background location tracking or trip coordinates stored in server logs.
+**Current pilot area:** Connaught Place, New Delhi (5 verified facilities from OSM + NDMC)  
+**Place search:** All of India (cities, towns, villages, landmarks via Photon + OSM)
 
 ---
 
-## 🚀 Quickstart Guide
+## Deploy your own
 
-### Prerequisites
-* **Node.js**: `>= 20.0.0` (Supports Node 20, 22 LTS, and 24)
-* **Package Manager**: `pnpm` (>= 9.0.0) or `npm` (>= 10.0.0)
+### One-click deploy
 
-### 1. Clone the Repository
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Rohi56u/PARKMYCAR)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Rohi56u/PARKMYCAR)
+
+### Manual deploy
+
 ```bash
 git clone https://github.com/Rohi56u/PARKMYCAR.git
 cd PARKMYCAR
-```
-
-### 2. Install Dependencies
-```bash
 pnpm install
-# or: npm install
-```
-
-### 3. Configure Environment (Optional)
-```bash
-cp .env.example .env
-```
-Default parameters are pre-configured with resilient fallbacks:
-```env
-# Optional Custom Rate Limit Salt
-RATE_LIMIT_SALT=parkmycar-secure-salt-2026
-
-# Status TTL in Minutes (default: 15, range: 5-60)
-PARKMYCAR_STATUS_TTL_MINUTES=15
-
-# Photon Geocoding Base URL (defaults to https://photon.komoot.io)
-PARKMYCAR_PHOTON_BASE_URL=https://photon.komoot.io
-```
-
-### 4. Run Development Server
-```bash
 pnpm dev
-# or: npm run dev
-```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
-
-### 5. Build for Production
-```bash
-pnpm build
-pnpm start
-# or: npm run build && npm start
 ```
 
----
+Requirements: **Node.js ≥ 22.13**, **pnpm 11**
 
-## 🌐 Zero-Config Deployment
+### Enable AI suggestions (optional)
 
-ParkMyCar is built to deploy effortlessly to any modern hosting platform without complex configuration:
+Get a free API key at [aistudio.google.com](https://aistudio.google.com) and set it as an environment variable:
 
-### Deploy to Netlify
-1. Connect your repository on [Netlify](https://app.netlify.com).
-2. The included `netlify.toml` handles build settings automatically:
-   * **Build Command**: `pnpm run build`
-   * **Publish Directory**: `.next`
-   * **Plugin**: `@netlify/plugin-nextjs`
-   * **Node Version**: `22`
-3. Click **Deploy Site** — your app is live!
+```
+GEMINI_API_KEY=your_key_here
+```
 
-### Deploy to Vercel
-1. Import repository on [Vercel](https://vercel.com).
-2. Framework preset **Next.js** is auto-detected.
-3. Click **Deploy**.
+On Netlify: Site settings → Environment variables → Add `GEMINI_API_KEY`.  
+The app works fully without this key — AI suggestions simply won't appear.
 
-### Deploy via Docker
-```dockerfile
-FROM node:22-alpine AS runner
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
-COPY . .
-RUN pnpm build
-EXPOSE 3000
-CMD ["pnpm", "start"]
+### Netlify config (already included)
+
+```toml
+# netlify.toml
+[build]
+  command = "pnpm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
 ```
 
 ---
 
-## 📡 API Specification
+## Project structure
 
-All endpoints are versioned under `/api/v1/`:
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/health` | Healthcheck & catalogue schema version | No |
-| `GET` | `/api/v1/bootstrap` | Initial destination suggestions & active facilities | No |
-| `POST` | `/api/v1/search` | Spatial radius search with vehicle & arrival filters | No |
-| `POST` | `/api/v1/places/search` | OpenStreetMap India place & address search | No |
-| `GET` | `/api/v1/facilities/:id` | Detailed facility profile with active evidence | No |
-| `POST` | `/api/v1/reports` | Submit community space/closure report | No (Rate-limited) |
-| `GET` | `/api/v1/workspace` | Operator dashboard & facility management | Yes (Session/Header) |
-| `POST` | `/api/v1/workspace/facilities/:id/status` | Publish verified operator status update | Yes (Assigned Operator) |
-| `PATCH` | `/api/v1/workspace/facilities/:id` | Update facility rate card, hours & access | Yes (Operator/Admin) |
-
----
-
-## 🗄️ Relational Database Schema
-
-The core relational data model includes 9 tables designed with foreign key constraints, check invariants, and audit tracking:
-
-* **`facilities`**: Primary physical catalogue (ID, coordinates, access type, vehicle classes, verified rate cards).
-* **`observations`**: Time-decaying availability observations with source attribution.
-* **`reports`**: Driver community reports awaiting moderation.
-* **`listing_changes`**: Audit-tracked staging queue for operator facility edits.
-* **`members`**: Role-based access control (`ADMIN`, `OPERATOR`, `REVIEWER`).
-* **`audit_events`**: Immutable compliance log recording all workspace actions.
-* **`request_limits`**: Sliding-window rate limiters.
-* **`geocode_cache`**: Privacy-safe cached public place results.
-* **`settings`**: Dynamic operational parameters (catalogue version, workspace owner).
-
----
-
-## 🧪 Testing & Code Quality
-
-```bash
-# Run unit, domain and API integration tests
-pnpm test
-
-# Run TypeScript typechecks
-pnpm typecheck
-
-# Run ESLint validation
-pnpm lint
-
-# Run complete verification suite
-pnpm check
+```
+parkmycar/
+├── app/
+│   ├── api/v1/
+│   │   ├── [...path]/route.ts     # Main API handler (search, reports, workspace)
+│   │   └── ai-suggest/route.ts    # Gemini AI recommendation endpoint
+│   ├── research/page.tsx          # Evidence and sources page
+│   └── workspace/page.tsx         # Operator/admin management UI
+├── components/
+│   ├── ParkApp.tsx                # Main client app
+│   ├── ParkingMap.tsx             # Leaflet map (SSR-safe via next/dynamic)
+│   ├── AiSuggest.tsx              # AI suggestion bar component
+│   └── PlaceSearch.tsx            # India-wide place search
+├── lib/
+│   ├── domain.ts                  # Types + search engine + evidence selection
+│   ├── service.ts                 # API route handlers
+│   ├── store.ts                   # DB abstraction layer + rate limiting
+│   ├── db.ts                      # Universal in-memory DB (no native deps)
+│   ├── geocoding.ts               # Photon place search + cache
+│   └── contracts.ts               # Zod schemas + API error types
+├── data/
+│   └── source-catalog.json        # 5 sourced CP parking facilities
+└── docs/
+    ├── API.md                     # Full API reference
+    ├── ARCHITECTURE.md            # Technical design
+    └── DATA.md                    # Data sources and licensing
 ```
 
 ---
 
-## ⚖️ Licensing
+## API reference
 
-ParkMyCar is dual-licensed under both the **[MIT License](LICENSE)** and the **[Apache License 2.0](LICENSE)**.
+Base URL: `https://parkmycarr.netlify.app/api/v1`
 
-You may choose to use this project under the terms of either license at your option:
-* **MIT License**: Simple, permissive, and permissive commercial reuse.
-* **Apache License 2.0**: Enterprise-friendly, providing explicit patent grants and trademark protections.
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Health check — returns `{status:"ok", catalogueVersion}` |
+| `GET` | `/bootstrap` | Fetch all destinations, facilities and coverage metadata |
+| `POST` | `/places/search` | Search places across India (requires `Same-Origin`) |
+| `POST` | `/search` | Find and rank parking near a destination |
+| `GET` | `/facilities/:id` | Get a single facility with current evidence |
+| `POST` | `/reports` | Submit a driver report (requires `Same-Origin`) |
+| `POST` | `/ai-suggest` | Get Gemini AI parking recommendation |
+| `GET` | `/workspace` | Operator/admin dashboard data (requires auth) |
 
-Third-party dependencies, OpenStreetMap data (`ODbL 1.0`), and font assets (`OFL`) retain their respective licenses. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for full attributions.
+### POST /search — request body
+
+```json
+{
+  "destination": { "lat": 28.6313, "lng": 77.2179 },
+  "origin": { "lat": 28.6100, "lng": 77.2090 },
+  "radius": 1000,
+  "arrivalAt": "2026-10-31T14:00:00+05:30",
+  "durationMinutes": 120,
+  "vehicle": "CAR",
+  "requirements": [],
+  "type": "all",
+  "sort": "distance",
+  "includeUnknown": true,
+  "includeCustomer": false
+}
+```
+
+### POST /search — response
+
+```json
+{
+  "results": [
+    {
+      "id": "palika",
+      "name": "Palika Parking",
+      "type": "underground",
+      "access": "PUBLIC",
+      "distanceMeters": 142,
+      "evidence": {
+        "state": "UNKNOWN",
+        "evidenceClass": "STATIC_LISTING",
+        "label": "Mapped parking",
+        "source": null,
+        "observedAt": null,
+        "expiresAt": null,
+        "conflict": false
+      },
+      "hoursState": "unknown",
+      "totalCost": null,
+      "reasons": ["140 m from your destination", "Underground parking", "Listed by NDMC"]
+    }
+  ],
+  "coverage": { "name": "Connaught Place, New Delhi", ... },
+  "serverTime": "2026-10-31T08:30:00.000Z",
+  "catalogueVersion": "cp-2026-10-17-v1"
+}
+```
 
 ---
 
-## 🤝 Contributing
+## Data sources
 
-Contributions, issues, and feature requests are welcome!
-Feel free to check [issues page](https://github.com/Rohi56u/PARKMYCAR/issues).
+All data is sourced, dated, and attributed. No data is invented.
 
-1. Fork the Project (`git checkout -b feature/AmazingFeature`)
-2. Commit your Changes (`git commit -m 'feat: Add some AmazingFeature'`)
-3. Push to the Branch (`git push origin feature/AmazingFeature`)
-4. Open a Pull Request
+| Source | What it contributes | License |
+|--------|---------------------|---------|
+| OpenStreetMap | Facility locations, type, mapped access | ODbL 1.0 |
+| NDMC (ndmc.gov.in) | Municipal facility confirmation for Connaught Place | Public record |
+| BMRCL (2026 Metro Parking Policy) | Policy evidence for urban parking demand | Public record |
+| MoHUA Lok Sabha Q292 (Mar 2026) | Infrastructure context | Public record |
+| Photon (komoot.io) | Place search geocoding across India | ODbL 1.0 |
+
+Data currency and source links are visible within the app on every facility listing.
+
+---
+
+## Roadmap
+
+The expansion plan follows a phased release gate model — each stage requires meeting reliability criteria before proceeding:
+
+```
+01  CURRENT    Working app · India place search · 5 sourced CP facilities · AI suggestions
+02  NEXT       Field pilot · Survey entrances · Confirm rules · Onboard operators
+03  THEN       Live operations · Operator APIs · Gate counts · Bay sensors
+04  THEN       City expansion · PostGIS spatial search · Multi-language · New areas
+```
+
+No city is added without a surveyed facility with a named source and accountable owner. This is the release gate.
+
+---
+
+## Roles
+
+The app has three distinct user roles with strictly enforced permissions:
+
+| Role | Can do |
+|------|--------|
+| **Driver** | Search, compare, save shortlist, report issues |
+| **Operator** | Update assigned parking listings, post status observations |
+| **Admin** | Review reports, moderate changes, manage team, view audit log |
+
+Operators work only on locations assigned to them. Admins review all changes. Every write action creates an audit event.
+
+---
+
+## License
+
+This project is dual-licensed:
+
+**[MIT License](LICENSE)** — permissive use, modification, and distribution with attribution.  
+**[Apache License 2.0](LICENSE)** — same permissive terms, with explicit patent grant.
+
+You may use this project under either license.
+
+Copyright © 2026 [Rohit Choudhary (Rohi56u)](https://github.com/Rohi56u)
+
+---
+
+## Acknowledgements
+
+- [OpenStreetMap contributors](https://openstreetmap.org/copyright) — map data and facility locations
+- [Photon by Komoot](https://photon.komoot.io) — geocoding API
+- [Leaflet](https://leafletjs.com) — interactive maps
+- [Next.js](https://nextjs.org), [Tailwind CSS](https://tailwindcss.com), [Lucide](https://lucide.dev) — UI stack
+- [Google Gemini API](https://ai.google.dev) — AI suggestions (optional)
+- NDMC, BMRCL, MoHUA — public data sources
 
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/Rohi56u">Rohit (Rohi56u)</a> for smarter, stress-free urban mobility in India.</sub>
+
+**[parkmycarr.netlify.app](https://parkmycarr.netlify.app)** · **[GitHub](https://github.com/Rohi56u/PARKMYCAR)**
+
+*A place for your car. A plan for your journey.*
+
 </div>
