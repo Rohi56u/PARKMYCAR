@@ -214,7 +214,7 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
         confidence: 0.96,
         plateCropBase64: imageBase64 || null,
         processingTimeMs: 42,
-      }, 'POST');
+      }, 'POST', undefined, { 'X-ANPR-Secret': 'test-anpr-secret' });
 
       const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
