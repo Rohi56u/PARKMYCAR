@@ -23,11 +23,11 @@ function useMounted() {
 }
 export { Brand };
 export default function ParkApp() {
-  const [mainView,setMainView]=useState<'search'|'anpr'>('search');
+  const [mainView,setMainView]=useState<'search'|'anpr'>('anpr');
   const mounted=useMounted();
   const [places,setPlaces]=useState(initialDestinations),[destination,setDestination]=useState<Destination>(initialDestinations[0]),[query,setQuery]=useState(initialDestinations[0].name);
   const [form,setForm]=useState<SearchInput>(initialForm),[lastSearch,setLastSearch]=useState<SearchInput>(initialForm),[results,setResults]=useState<Result[]>([]),[catalogue,setCatalogue]=useState<Facility[]>([]);
-  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[saved,setSaved]=useState<string[]>([]),[selected,setSelected]=useState<string|null>(null),[detail,setDetail]=useState<Result|Facility|null>(null);
+  const [loading,setLoading]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState<string[]>([]),[selected,setSelected]=useState<string|null>(null),[detail,setDetail]=useState<Result|Facility|null>(null);
   const [aiSearchKey, setAiSearchKey]=useState('');
   const [modal,setModal]=useState<'filters'|'compare'|'about'|'report'|'video'|null>(null),[tab,setTab]=useState<'nearby'|'saved'>('nearby'),[mobileView,setMobileView]=useState<'list'|'map'>('list');
   const [pinMode,setPinMode]=useState(false),[originExpanded,setOriginExpanded]=useState(false),[originText,setOriginText]=useState(''),[geoLoading,setGeoLoading]=useState(false),[toast,setToast]=useState(''),[reportType,setReportType]=useState('FULL'),[sending,setSending]=useState(false),[reportDone,setReportDone]=useState(false);
@@ -43,7 +43,8 @@ export default function ParkApp() {
       const stored=readSaved();const valid=b?stored.filter(id=>b.catalogue?.some(f=>f.id===id)):stored;setSaved(valid);storeSaved(valid);
       if(b){setPlaces(b.destinations);setCatalogue(b.catalogue??[]);}
       const params=new URLSearchParams(location.search);
-      if(params.get('view')==='anpr')setMainView('anpr');
+      if(params.get('view')==='search')setMainView('search');
+      else if(params.get('view')==='anpr')setMainView('anpr');
       const id=params.get('destination');const p=initialDestinations.find(p=>p.id===id)??initialDestinations[0];setDestination(p);setQuery(p.name);const input={...initialForm(),arrivalAt:new Date().toISOString(),destination:p.point};setForm(input);await runSearch(input);
     }
     void initialize();
@@ -119,6 +120,64 @@ export default function ParkApp() {
   const detailEvidence=detail&&'evidence'in detail?evidenceNow(detail.evidence):null;
   return <>
     <header className="site-header"><Brand/><nav className="main-nav" aria-label="Main navigation"><button className={mainView==='search'&&(tab==='nearby'||tab==='saved')?'active':''} onClick={()=>{setMainView('search');setTab('nearby');}}>Find parking</button><button className={mainView==='search'&&tab==='saved'?'active':''} onClick={()=>{setMainView('search');setTab('saved');}}>My shortlist <span className="nav-count">{saved.length}</span></button><button className={mainView==='anpr'?'active anpr-nav-tab':'anpr-nav-tab'} onClick={()=>setMainView(mainView==='anpr'?'search':'anpr')} style={{display:'inline-flex',alignItems:'center',gap:7,background:mainView==='anpr'?'#10b981':'rgba(16,185,129,0.12)',color:mainView==='anpr'?'#ffffff':'#059669',border:'1px solid rgba(16,185,129,0.4)',borderRadius:8,padding:'5px 12px',fontWeight:700,fontSize:13,cursor:'pointer',transition:'all 0.15s ease'}}><Camera size={15}/><span>Live ANPR & Occupancy</span><span style={{width:7,height:7,borderRadius:'50%',background:mainView==='anpr'?'#ffffff':'#10b981',boxShadow:'0 0 6px #10b981'}}/></button><button onClick={()=>setModal('about')}>How it works</button><button onClick={()=>setModal('video')} style={{display:'inline-flex',alignItems:'center',gap:5,background:'rgba(124,58,237,0.12)',color:'#a78bfa',border:'1px solid rgba(139,92,246,0.3)',borderRadius:6,padding:'4px 10px',fontWeight:600}}><Play size={13} style={{fill:'currentColor'}}/> System Video</button></nav><a href="/workspace" className="workspace-link">Operator workspace <ArrowRight size={15}/></a></header>
+    <div style={{ background: '#0b1329', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '10px 4.2%' }}>
+      <div style={{ maxWidth: 1600, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.08)', padding: 4, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }}>
+          <button 
+            onClick={()=>setMainView('anpr')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '9px 18px',
+              borderRadius: 8,
+              border: 'none',
+              fontSize: 13,
+              fontWeight: 700,
+              background: mainView === 'anpr' ? '#10b981' : 'transparent',
+              color: mainView === 'anpr' ? '#ffffff' : '#94a3b8',
+              cursor: 'pointer',
+              boxShadow: mainView === 'anpr' ? '0 2px 10px rgba(16,185,129,0.35)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Camera size={16} />
+            <span>AI ANPR &amp; Live Occupancy System (Live Webcam &amp; Gates)</span>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: mainView === 'anpr' ? '#ffffff' : '#10b981', boxShadow: '0 0 6px #10b981' }} />
+          </button>
+          <button 
+            onClick={()=>{setMainView('search');setTab('nearby');}}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '9px 18px',
+              borderRadius: 8,
+              border: 'none',
+              fontSize: 13,
+              fontWeight: 700,
+              background: mainView === 'search' ? '#ffffff' : 'transparent',
+              color: mainView === 'search' ? '#0f172a' : '#94a3b8',
+              cursor: 'pointer',
+              boxShadow: mainView === 'search' ? '0 2px 8px rgba(0,0,0,0.25)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <CircleParking size={16} />
+            <span>Parking Search &amp; Discovery (Pan-India Map)</span>
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12, color: '#94a3b8' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#34d399', fontWeight: 600 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 6px #34d399' }} /> Live System Online
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <span>Dual Cameras: <strong>ENTRY-CAM-01</strong> &amp; <strong>EXIT-CAM-01</strong></span>
+          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <span>Target Facility: <strong>Palika Underground (500 Bays)</strong></span>
+        </div>
+      </div>
+    </div>
     <main id="main-content">
       {mainView==='anpr' ? (
         <section className="anpr-main-zone" style={{maxWidth:1600,margin:'0 auto',padding:'28px 4.2%'}}>
@@ -163,11 +222,11 @@ export default function ParkApp() {
               <div className="destination-field"><MapPin size={21}/><PlaceSearch ref={destinationInput} id="destination" label="WHERE ARE YOU HEADED?" value={query} selected={destination} quickPlaces={places} onChange={setQuery} onSelect={choose}/></div>
               <div className="small-search-field"><Clock3 size={20}/><div><label htmlFor="arrival">ARRIVING</label><select id="arrival" value={arrival} onChange={e=>setArrival(e.target.value)}><option value="now">Now</option><option value="later">Choose a time</option></select></div></div>
               <div className="small-search-field vehicle-field"><Car size={21}/><div><label htmlFor="vehicle">VEHICLE</label><select id="vehicle" value={form.vehicle} onChange={e=>setForm(f=>({...f,vehicle:e.target.value as SearchInput['vehicle']}))}><option value="CAR">Car</option><option value="TWO_WHEELER">Two-wheeler</option></select></div></div>
-              <button className="button button-lime search-submit" disabled={mounted ? (loading || resolving) : undefined} suppressHydrationWarning><Search size={19}/>{mounted && resolving?'Searching places…':mounted && loading?'Finding parking…':query!==destination.name?'Search India':'Find parking'}<ArrowRight size={18}/></button>
+              <button className="button button-lime search-submit" disabled={loading || resolving}><Search size={19}/>{resolving?'Searching places…':loading?'Finding parking…':query!==destination.name?'Search India':'Find parking'}<ArrowRight size={18}/></button>
             </form>
             <div className="search-below"><button className="text-button" onClick={()=>setOriginExpanded(v=>!v)}><Navigation size={14}/>{originExpanded?'Hide start point':'Add a start point'}<span className="optional">optional</span></button><span><ShieldCheck size={14}/> Source details on every listing</span><button className="text-button" onClick={()=>setModal('about')}><CircleHelp size={14}/> About this directory</button></div>
-            {(originExpanded||arrival==='later')&&<div className="extra-fields">{originExpanded&&<><div className="origin-search"><PlaceSearch ref={originInput} id="origin" label="START POINT" value={originText} selected={originPlace} quickPlaces={places} onChange={text=>{setOriginText(text);setOriginPlace(null);setForm(f=>({...f,origin:undefined}));setLastSearch(f=>({...f,origin:undefined}));}} onSelect={chooseOrigin}/></div><button className="button button-outline" onClick={locate} disabled={mounted ? geoLoading : undefined} suppressHydrationWarning><LocateFixed size={17}/>{mounted && geoLoading?'Locating…':'Use my location'}</button><small>{originText&&!form.origin?'Search and choose your start point.':'Optional. Used for directions; no trip history is saved.'}</small></>}{arrival==='later'&&<label>ARRIVAL TIME · IST<input type="datetime-local" value={customArrival} onChange={e=>setCustomArrival(e.target.value)}/></label>}</div>}
-            <div className="destination-summary"><span className="destination-summary-icon"><MapPin size={20}/></span><div className="destination-summary-copy"><small>SELECTED DESTINATION</small><strong>{destination.name}</strong><span>{destination.subtitle}</span><small>From {form.origin?(originPlace?.name??'your selected start point'):'your current location in Google Maps'}</small></div><div className="destination-summary-actions">{destinationReady&&originReady?<><a className="button button-dark" href={navigationUrl(destination.point,'driving',form.origin)} target="_blank" rel="noreferrer"><Navigation size={16}/> Directions in Google Maps <ExternalLink size={13}/></a><a className="button button-outline" href={navigationUrl(destination.point,'walking',form.origin)} target="_blank" rel="noreferrer"><Footprints size={16}/> Walk</a></>:<button className="button button-dark" onClick={()=>void prepareDirections()} disabled={mounted ? resolving : undefined} suppressHydrationWarning><Search size={16}/>{destinationReady?'Confirm start point':'Confirm destination'}</button>}{destination.sourceUrl&&<a className="place-source" href={destination.sourceUrl} target="_blank" rel="noreferrer">View map record <ExternalLink size={12}/></a>}</div></div>
+            {(originExpanded||arrival==='later')&&<div className="extra-fields">{originExpanded&&<><div className="origin-search"><PlaceSearch ref={originInput} id="origin" label="START POINT" value={originText} selected={originPlace} quickPlaces={places} onChange={text=>{setOriginText(text);setOriginPlace(null);setForm(f=>({...f,origin:undefined}));setLastSearch(f=>({...f,origin:undefined}));}} onSelect={chooseOrigin}/></div><button className="button button-outline" onClick={locate} disabled={geoLoading}><LocateFixed size={17}/>{geoLoading?'Locating…':'Use my location'}</button><small>{originText&&!form.origin?'Search and choose your start point.':'Optional. Used for directions; no trip history is saved.'}</small></>}{arrival==='later'&&<label>ARRIVAL TIME · IST<input type="datetime-local" value={customArrival} onChange={e=>setCustomArrival(e.target.value)}/></label>}</div>}
+            <div className="destination-summary"><span className="destination-summary-icon"><MapPin size={20}/></span><div className="destination-summary-copy"><small>SELECTED DESTINATION</small><strong>{destination.name}</strong><span>{destination.subtitle}</span><small>From {form.origin?(originPlace?.name??'your selected start point'):'your current location in Google Maps'}</small></div><div className="destination-summary-actions">{destinationReady&&originReady?<><a className="button button-dark" href={navigationUrl(destination.point,'driving',form.origin)} target="_blank" rel="noreferrer"><Navigation size={16}/> Directions in Google Maps <ExternalLink size={13}/></a><a className="button button-outline" href={navigationUrl(destination.point,'walking',form.origin)} target="_blank" rel="noreferrer"><Footprints size={16}/> Walk</a></>:<button className="button button-dark" onClick={()=>void prepareDirections()} disabled={resolving}><Search size={16}/>{destinationReady?'Confirm start point':'Confirm destination'}</button>}{destination.sourceUrl&&<a className="place-source" href={destination.sourceUrl} target="_blank" rel="noreferrer">View map record <ExternalLink size={12}/></a>}</div></div>
           </section>
 
           <div style={{maxWidth:1600,margin:'0 auto',padding:'0 4.2% 16px'}}>
@@ -262,7 +321,7 @@ export default function ParkApp() {
     </Dialog>}
     {modal==='filters'&&<Dialog title="Find the right fit" onClose={()=>setModal(null)}><p className="muted">Choose what matters for this trip. Filters use only recorded facility details.</p><fieldset><legend>Search radius</legend><div className="option-grid">{[500,1000,1500,2500].map(n=><button className={form.radius===n?'option active':'option'} key={n} onClick={()=>setForm(f=>({...f,radius:n}))}>{distanceLabel(n)}</button>)}</div></fieldset><fieldset><legend>Parking type</legend><div className="option-grid">{(['all','underground','surface','street_side']as const).map(t=><button className={form.type===t?'option active':'option'} key={t} onClick={()=>setForm(f=>({...f,type:t}))}>{t==='all'?'All types':typeNames[t]}</button>)}</div></fieldset><label className="stacked-label">Planned stay<select value={form.durationMinutes} onChange={e=>setForm(f=>({...f,durationMinutes:Number(e.target.value)}))}>{[60,120,240,480,1440].map(n=><option value={n} key={n}>{n/60} hours</option>)}</select></label><fieldset><legend>Required features</legend>{[['EV_CHARGING','EV charging'],['ACCESSIBLE_PARKING','Accessible parking']].map(([key,label])=><label className="check-row" key={key}><input type="checkbox" checked={form.requirements.includes(key)} onChange={e=>setForm(f=>({...f,requirements:e.target.checked?[...f.requirements,key]:f.requirements.filter(x=>x!==key)}))}/><span>{label}<small>Only places where this feature is recorded</small></span></label>)}</fieldset><label className="check-row"><input type="checkbox" checked={form.includeUnknown} onChange={e=>setForm(f=>({...f,includeUnknown:e.target.checked}))}/><span>Include listings with some missing details<small>Access, hours, vehicle fit and pricing are shown in details</small></span></label><label className="check-row"><input type="checkbox" checked={form.includeCustomer} onChange={e=>setForm(f=>({...f,includeCustomer:e.target.checked}))}/><span>Include customer-only parking<small>Use only when visiting the associated venue</small></span></label><div className="dialog-footer"><button className="text-button" onClick={()=>setForm({...initialForm(),destination:destination.point})}>Reset filters</button><button className="button button-dark" onClick={()=>{setModal(null);submit();}}>Show matching parking <ArrowRight size={16}/></button></div></Dialog>}
     {modal==='compare'&&<Dialog title="Your options, side by side" wide onClose={()=>setModal(null)}><p className="muted">Keep a first choice and an alternative. Saving a location does not reserve a bay.</p><div className="comparison-scroll"><table className="compare-table"><thead><tr><th>YOUR TRIP</th>{savedFacilities.map((f,i)=><th key={f.id}><span className="comparison-number">0{i+1}</span>{f.name}<button className="icon-button" onClick={()=>toggleSave(f.id)} aria-label={`Remove ${f.name}`}><X size={14}/></button></th>)}</tr></thead><tbody>{[['Distance',...savedFacilities.map(f=>`${distanceLabel(haversine(f.point,lastSearch.destination))} · straight-line`)],['Type',...savedFacilities.map(f=>typeNames[f.type])],['Access',...savedFacilities.map(f=>accessNames[f.access])],['Rate',...savedFacilities.map(f=>f.rate?`₹${f.rate.amount} / ${f.rate.unit.replace('PER_','').toLowerCase()}`:'Check at entry')],['Hours',...savedFacilities.map(f=>f.hours?'Hours recorded':'Check at entry')],['Source',...savedFacilities.map(f=>f.sources.map(s=>s.name).join(' · '))]].map(row=><tr key={row[0]}>{row.map((cell,i)=>i===0?<th key={i}>{cell}</th>:<td key={i}>{cell}</td>)}</tr>)}<tr><th>Next step</th>{savedFacilities.map(f=><td key={f.id}><a className="button button-dark" href={navigationUrl(f.point,'driving',lastSearch.origin)} target="_blank" rel="noreferrer">Directions <Navigation size={15}/></a></td>)}</tr></tbody></table></div></Dialog>}
-    {modal==='report'&&<Dialog title={`Report · ${detail?.name}`} onClose={()=>setModal(null)}>{reportDone?<div className="success-state"><CheckCheck size={40}/><h3>Thanks for the update.</h3><p>Your report is in the review queue. It will be checked before it appears as a community update.</p><button className="button button-dark" onClick={()=>setModal(null)}>Back to details</button></div>:<><p className="muted">What did you notice on arrival? Submit a recent, first-hand observation.</p><fieldset className="report-options"><legend>Arrival outcome</legend>{[['FOUND_SPACE','I found a space','Parking was possible when I arrived'],['FULL','It was full','No space when I arrived'],['CLOSED','It was closed','The location was not operating'],['DETAILS_WRONG','A detail needs correcting','Access or listing information needs review']].map(([id,title,sub])=><label className={reportType===id?'report-option active':'report-option'} key={id}><input type="radio" name="report" value={id} checked={reportType===id} onChange={()=>setReportType(id)}/><span><b>{title}</b><small>{sub}</small></span></label>)}</fieldset><p className="fine-print">No name, plate number or GPS is collected in this form. Reports are retained for up to 30 days.</p><button className="button button-dark full-width" disabled={mounted ? sending : undefined} suppressHydrationWarning onClick={sendReport}>{mounted && sending?'Sending…':'Submit report'}<ArrowRight size={16}/></button></>}</Dialog>}
+    {modal==='report'&&<Dialog title={`Report · ${detail?.name}`} onClose={()=>setModal(null)}>{reportDone?<div className="success-state"><CheckCheck size={40}/><h3>Thanks for the update.</h3><p>Your report is in the review queue. It will be checked before it appears as a community update.</p><button className="button button-dark" onClick={()=>setModal(null)}>Back to details</button></div>:<><p className="muted">What did you notice on arrival? Submit a recent, first-hand observation.</p><fieldset className="report-options"><legend>Arrival outcome</legend>{[['FOUND_SPACE','I found a space','Parking was possible when I arrived'],['FULL','It was full','No space when I arrived'],['CLOSED','It was closed','The location was not operating'],['DETAILS_WRONG','A detail needs correcting','Access or listing information needs review']].map(([id,title,sub])=><label className={reportType===id?'report-option active':'report-option'} key={id}><input type="radio" name="report" value={id} checked={reportType===id} onChange={()=>setReportType(id)}/><span><b>{title}</b><small>{sub}</small></span></label>)}</fieldset><p className="fine-print">No name, plate number or GPS is collected in this form. Reports are retained for up to 30 days.</p><button className="button button-dark full-width" disabled={sending} onClick={sendReport}>{sending?'Sending…':'Submit report'}<ArrowRight size={16}/></button></>}</Dialog>}
     
     {modal==='video'&&<Dialog title="ParkMyCar — Product Architecture Walkthrough" wide onClose={()=>setModal(null)}>
       <div style={{marginTop:12,borderRadius:12,overflow:'hidden',background:'#000',boxShadow:'0 8px 30px rgba(0,0,0,0.5)'}}>
