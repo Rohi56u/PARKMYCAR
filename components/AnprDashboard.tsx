@@ -694,7 +694,10 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
 
           {/* Method 2: Upload Plate / Vehicle Photo */}
           <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px dashed rgba(16, 185, 129, 0.4)', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', minHeight: 160, position: 'relative' }}>
+            <label htmlFor="anpr-file-input" className="sr-only">Upload vehicle or number plate image</label>
             <input
+              id="anpr-file-input"
+              aria-label="Upload vehicle or number plate image"
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
@@ -715,11 +718,13 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
           {/* Method 3: Number Plate Input & Quick Indian Formats */}
           <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#cbd5e1', letterSpacing: 0.5, marginBottom: 6 }}>
+              <label htmlFor="anpr-plate-input" style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#cbd5e1', letterSpacing: 0.5, marginBottom: 6 }}>
                 ENTER VEHICLE REGISTRATION NUMBER
               </label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input
+                  id="anpr-plate-input"
+                  aria-label="Enter vehicle registration number"
                   type="text"
                   value={simPlate}
                   onChange={e => setSimPlate(e.target.value.toUpperCase())}
