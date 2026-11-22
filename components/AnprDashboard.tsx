@@ -593,14 +593,14 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
                 <Camera size={19} color="#10b981" /> Automatic Number Plate Recognition &amp; Gate Decision
               </h3>
             </div>
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#94a3b8', maxWidth: 650 }}>
+            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#cbd5e1', maxWidth: 650 }}>
               Show or upload any vehicle number plate image. The OpenCV AI vision pipeline detects the license plate, reads OCR characters, and immediately verifies if the vehicle is <b>ALREADY INSIDE</b> or <b>NEW ENTRY</b>.
             </p>
           </div>
 
           {/* Mode Selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.3)', padding: 4, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
-            <span style={{ fontSize: 11, color: '#94a3b8', padding: '0 6px', fontWeight: 600 }}>MODE:</span>
+            <span style={{ fontSize: 11, color: '#cbd5e1', padding: '0 6px', fontWeight: 600 }}>MODE:</span>
             {(['AUTO', 'ENTRY', 'EXIT'] as const).map(m => (
               <button
                 key={m}
@@ -614,7 +614,7 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
                   cursor: 'pointer',
                   border: 'none',
                   background: gateMode === m ? (m === 'ENTRY' ? '#10b981' : m === 'EXIT' ? '#f59e0b' : '#6366f1') : 'transparent',
-                  color: gateMode === m ? '#fff' : '#94a3b8',
+                  color: gateMode === m ? '#fff' : '#cbd5e1',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -671,7 +671,7 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
               ) : (
                 <div style={{ textAlign: 'center', padding: 12 }}>
                   <Camera size={32} color="#475569" style={{ margin: '0 auto 6px' }} />
-                  <p style={{ margin: 0, fontSize: 11, color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: '#cbd5e1' }}>
                     Click &ldquo;Open Camera&rdquo; to use your webcam/phone camera for real-time plate scanning
                   </p>
                   {cameraError && <p style={{ color: '#ef4444', fontSize: 10, marginTop: 4 }}>{cameraError}</p>}
@@ -710,7 +710,7 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
             <strong style={{ fontSize: 13, color: '#f1f5f9' }}>
               {scanningImage ? 'OpenCV Scanning Plate...' : 'Upload Vehicle / Plate Image'}
             </strong>
-            <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>
+            <p style={{ fontSize: 11, color: '#cbd5e1', margin: '4px 0 0' }}>
               Drag &amp; drop or click to upload JPEG / PNG / WebP. OpenCV detects &amp; crops plate.
             </p>
           </div>
@@ -756,7 +756,7 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
 
             {/* Quick Sample Plates */}
             <div style={{ marginTop: 12 }}>
-              <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, display: 'block', marginBottom: 5 }}>
+              <span style={{ fontSize: 10, color: '#cbd5e1', fontWeight: 600, display: 'block', marginBottom: 5 }}>
                 QUICK STATUTORY SAMPLE PLATES (CLICK TO TEST):
               </span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -849,7 +849,7 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
                   <span style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc', letterSpacing: 1 }}>
                     {decisionFeedback.plate}
                   </span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  <span style={{ fontSize: 11, color: '#cbd5e1' }}>
                     {decisionFeedback.time} IST
                   </span>
                 </div>
@@ -866,11 +866,11 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
             {decisionFeedback.tariff && (
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
                 <div>
-                  <small style={{ display: 'block', fontSize: 9, color: '#94a3b8' }}>PARKING STAY</small>
+                  <small style={{ display: 'block', fontSize: 9, color: '#cbd5e1' }}>PARKING STAY</small>
                   <strong style={{ fontSize: 13, color: '#f8fafc' }}>{decisionFeedback.duration}</strong>
                 </div>
                 <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 12 }}>
-                  <small style={{ display: 'block', fontSize: 9, color: '#94a3b8' }}>TARIFF SETTLED</small>
+                  <small style={{ display: 'block', fontSize: 9, color: '#cbd5e1' }}>TARIFF SETTLED</small>
                   <strong style={{ fontSize: 15, color: '#10b981' }}>{decisionFeedback.tariff}</strong>
                 </div>
               </div>
@@ -891,7 +891,7 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
               <strong style={{ fontSize: 12, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <CheckCircle2 size={13} color="#10b981" /> OpenCV Plate Localization &amp; Recognition
               </strong>
-              <p style={{ margin: '3px 0 0', fontSize: 11, color: '#94a3b8' }}>
+              <p style={{ margin: '3px 0 0', fontSize: 11, color: '#cbd5e1' }}>
                 Plate: <b style={{ color: '#fff' }}>{simPlate}</b> &bull; Confidence: <b>{Math.round((opencvResult?.confidence ?? 0.95) * 100)}%</b> &bull; Model: <b>Morphological CV / DIN 1451</b> &bull; Latency: <b>{opencvResult?.executionTimeMs ?? 42}ms</b>
               </p>
             </div>
@@ -1069,7 +1069,7 @@ export function AnprDashboard({ facilityId = 'palika' }: { facilityId?: string }
                             borderRadius: 12,
                             fontWeight: 700,
                             background: isInside ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)',
-                            color: isInside ? '#10b981' : '#94a3b8',
+                            color: isInside ? '#10b981' : '#cbd5e1',
                           }}
                         >
                           {s.status}
