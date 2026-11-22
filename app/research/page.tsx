@@ -1,7 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import { ArrowLeft,ArrowRight,ExternalLink } from 'lucide-react';
+import type { Metadata } from 'next';
 import { Brand } from '../../components/ParkApp';
+
+export const metadata: Metadata = {
+  title: 'Research & Municipal Evidence · ParkMyCar',
+  description: 'Evidence trail from NDMC, BMRCL, GCC, and BMC regarding urban parking policy and discovery.'
+};
 const cities=[
  {name:'Delhi',date:'NDMC · municipal information',text:'NDMC acknowledges parking pressure in its area and discusses better use of underground parking at Palika. This describes its jurisdiction, not all of NCR.',url:'https://ndmc.gov.in/departments/enforcement_parking_facilities.aspx'},
  {name:'Bengaluru',date:'BMRCL · April 2026 policy',text:'The Metro parking policy describes growing parking demand near transit stations and the road-capacity impact of haphazard on-street parking.',url:'https://www.bmrc.co.in/pd/FinalMetroParkingPolicy02-04-2026.pdf'},
