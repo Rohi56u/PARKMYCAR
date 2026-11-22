@@ -58,3 +58,7 @@ next-env.d.ts
 .dev.vars
 .dev.vars.*
 *.tsbuildinfo
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

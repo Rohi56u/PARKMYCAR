@@ -4,6 +4,7 @@ import { useEffect,useState,type FormEvent } from 'react';
 import { ArrowLeft,ArrowRight,Check,CheckCheck,CircleParking,ExternalLink,RefreshCw,ShieldCheck,Users,X } from 'lucide-react';
 import { Brand } from './ParkApp';
 import { Dialog } from './Dialog';
+import { AnprDashboard } from './AnprDashboard';
 import { api } from '../lib/client';
 import type { Facility,Hours } from '../lib/domain';
 import type { Member } from '../lib/store';
@@ -17,12 +18,24 @@ const timeText=(n:number)=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String
 const timeNumber=(s:string)=>{const[a,b]=s.split(':').map(Number);return a*60+b;};
 function editValue(f:Facility):Edit {return {name:f.name,access:f.access,type:f.type,entryNotes:f.entryNotes,active:f.active,vehicles:f.vehicles,features:f.features,rate:f.rate?{amount:f.rate.amount,unit:f.rate.unit,currency:'INR'}:null,hours:f.hours,sourceName:'',sourceUrl:'',version:f.version};}
 export default function Workspace(){
- const [data,setData]=useState<WorkspaceData|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[tab,setTab]=useState('Listings');
+ const [data,setData]=useState<WorkspaceData|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
+ const [tab,setTab]=useState(()=>{
+   if (typeof window !== 'undefined') {
+     const qTab = new URLSearchParams(window.location.search).get('tab');
+     if (qTab?.toLowerCase() === 'anpr' || qTab === 'ANPR & Occupancy') {
+       return 'ANPR & Occupancy';
+     }
+   }
+   return 'Listings';
+ });
  const [editing,setEditing]=useState<Facility|null>(null),[edit,setEdit]=useState<Edit|null>(null),[statusFacility,setStatusFacility]=useState<Facility|null>(null),[status,setStatus]=useState('UNKNOWN'),[teamOpen,setTeamOpen]=useState(false),[reviewChange,setReviewChange]=useState<Change|null>(null);
  const [adding,setAdding]=useState(false),[newPlace,setNewPlace]=useState({name:'',lat:'',lng:'',type:'surface',access:'UNKNOWN',sourceName:'',sourceUrl:'',license:'ODbL-1.0',entryNotes:''});
  const [teamForm,setTeamForm]=useState({userId:'',displayName:'',role:'OPERATOR',facilityIds:[]as string[]});
  async function refresh(){setError('');try{setData(await api<WorkspaceData>('workspace'));}catch(e){setError((e as Error).message);}finally{setLoading(false);}}
- useEffect(()=>{let active=true;api<WorkspaceData>('workspace').then(result=>{if(active)setData(result);}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[]);
+ useEffect(()=>{
+  let active=true;
+  api<WorkspaceData>('workspace').then(result=>{if(active)setData(result);}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};
+ },[]);
  async function action(path:string,body:unknown,success:string,method='POST'){setBusy(true);setError('');try{await api(path,body,method);setNotice(success);await refresh();return true;}catch(e){setError((e as Error).message);return false;}finally{setBusy(false);}}
  const facilities=data?.facilities??[],reports=data?.reports??[],changes=data?.changes??[],isAdmin=data?.member?.role==='ADMIN',isOperator=data?.member?.role==='OPERATOR';
  const name=(id:string)=>facilities.find(f=>f.id===id)?.name??id;
@@ -62,7 +75,8 @@ export default function Workspace(){
         ))}
       </div></div><div className="row-actions">{isAdmin&&<button className="button button-dark" onClick={()=>setAdding(true)}>Add parking location</button>}<button className="button button-outline" onClick={refresh}><RefreshCw size={16}/> Refresh</button></div></div>
    <div className="workspace-stats"><div className="workspace-stat"><small>{isOperator?'ASSIGNED LOCATIONS':'DIRECTORY LOCATIONS'}</small><b>{facilities.length}</b><small>{facilities.filter(f=>f.active).length} active listings</small></div><div className="workspace-stat"><small>REPORTS TO REVIEW</small><b>{reports.filter(r=>r.status==='PENDING').length}</b><small>Driver observations</small></div><div className="workspace-stat"><small>LISTING CHANGES</small><b>{changes.filter(r=>r.status==='PENDING').length}</b><small>Waiting for review</small></div></div>
-   <nav className="workspace-tabs" aria-label="Workspace sections">{(isOperator?['Listings']:isAdmin?['Listings','Reports','Changes','Team','Activity']:['Listings','Reports','Activity']).map(t=><button className={tab===t?'active':''} onClick={()=>setTab(t)} key={t}>{t}</button>)}</nav>
+   <nav className="workspace-tabs" aria-label="Workspace sections">{(isOperator?['Listings','ANPR & Occupancy']:isAdmin?['Listings','ANPR & Occupancy','Reports','Changes','Team','Activity']:['Listings','ANPR & Occupancy','Reports','Activity']).map(t=><button className={tab===t?'active':''} onClick={()=>setTab(t)} key={t}>{t}</button>)}</nav>
+   {tab==='ANPR & Occupancy'&&<AnprDashboard facilityId={facilities[0]?.id || 'palika'} />}
    {tab==='Listings'&&<>{!facilities.length&&<div className="empty-small">No locations are assigned to your account yet.</div>}{facilities.map(f=><article className="workspace-row" key={f.id}><span className="facility-symbol"><CircleParking size={25}/></span><div className="grow"><h3>{f.name}</h3><p>{f.area} · {f.sources.length} source references · revision {f.version}</p></div><span className="workspace-tag">{f.active?'Active':'Inactive'}</span><div className="row-actions">{data.member?.role!=='REVIEWER'&&<button className="button button-outline" onClick={()=>{setEditing(f);setEdit(editValue(f));}}>Edit details</button>}{isOperator&&f.active&&<button className="button button-dark" onClick={()=>{setStatusFacility(f);setStatus('UNKNOWN');}}>Post status</button>}</div></article>)}</>}
    {tab==='Reports'&&<>{!reports.length?<div className="empty-small">No driver reports yet. New reports will appear here.</div>:reports.map(r=><article className="workspace-row" key={r.id}><FlagIcon/><div className="grow"><h3>{r.category.replaceAll('_',' ').toLowerCase()} · {name(r.facility_id)}</h3><p>Observed {new Date(r.observed_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})} IST</p></div><span className="workspace-tag">{r.status.toLowerCase()}</span>{r.status==='PENDING'&&<div className="row-actions">{['FOUND_SPACE','FULL'].includes(r.category)&&<button disabled={busy} className="button button-dark" onClick={()=>action(`workspace/reports/${r.id}/moderate`,{decision:'APPROVED'},'Community report published with its original timestamp.')}>Publish report</button>}<button disabled={busy} className="button button-outline" onClick={()=>action(`workspace/reports/${r.id}/moderate`,{decision:'RESOLVED'},'Report marked resolved.')}>Resolve</button><button disabled={busy} className="button button-outline" onClick={()=>action(`workspace/reports/${r.id}/moderate`,{decision:'REJECTED'},'Report rejected.')}>Reject</button></div>}</article>)}</>}
    {tab==='Changes'&&<>{!changes.length?<div className="empty-small">No operator changes waiting for review.</div>:changes.map(c=><article className="workspace-row" key={c.id}><div className="grow"><h3>{name(c.facility_id)}</h3><p>Submitted {new Date(c.created_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})} IST</p></div><span className="workspace-tag">{c.status.toLowerCase()}</span><button className="button button-outline" onClick={()=>setReviewChange(c)}>Review changes</button></article>)}</>}

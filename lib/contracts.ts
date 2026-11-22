@@ -25,12 +25,38 @@ export const listingSchema = z.object({
 }).strict();
 export const memberSchema = z.object({ userId: z.string().min(3).max(200), displayName: z.string().trim().min(2).max(80), role: z.enum(['OPERATOR','REVIEWER']), facilityIds: z.array(z.string().regex(/^[a-z0-9-]{1,60}$/)).max(30) }).strict();
 export const importSchema=z.object({name:z.string().trim().min(3).max(100),point:pointSchema,type:z.enum(['surface','underground','street_side']),access:z.enum(['PUBLIC','CUSTOMERS_ONLY','PRIVATE','PERMIT','UNKNOWN']),sourceName:z.string().trim().min(3).max(100),sourceUrl:sourceUrlSchema,license:z.enum(['ODbL-1.0','First-party permission']),entryNotes:z.string().trim().max(500)}).strict();
+
+export const anprEventSchema = z.object({
+  facilityId: z.string().min(1).max(60),
+  cameraId: z.string().min(1).max(60),
+  gateType: z.enum(['ENTRY', 'EXIT']),
+  plateNumber: z.string().min(1).max(20),
+  confidence: z.number().min(0).max(1),
+  plateCropBase64: z.string().max(1000000).optional().nullable(),
+  detectedAt: z.string().datetime({ offset: true }).optional(),
+  processingTimeMs: z.number().int().min(0).max(60000).optional(),
+}).strict();
+
+export const anprHeartbeatSchema = z.object({
+  cameraId: z.string().min(1).max(60),
+  status: z.enum(['ONLINE', 'DEGRADED', 'OFFLINE', 'SIMULATING']),
+  fps: z.number().min(0).max(240).optional(),
+  lastFrameAt: z.string().datetime({ offset: true }).optional(),
+}).strict();
+
+export const anprReviewResolveSchema = z.object({
+  action: z.enum(['CONFIRM_ENTRY', 'CONFIRM_EXIT', 'REJECT']),
+  correctedPlate: z.string().min(1).max(20).optional().nullable(),
+  notes: z.string().max(500).optional().nullable(),
+}).strict();
+
 export class ApiError extends Error { status: number; code: string; constructor(status: number, code: string, message: string) { super(message); this.status=status; this.code=code; } }
 export async function readBody<T extends z.ZodTypeAny>(request: Request, schema: T, maxBytes = 8192): Promise<z.output<T>> {
+  const effectiveMax = maxBytes === 8192 && request.url.includes('/anpr/events') ? 1048576 : maxBytes;
   if (!request.headers.get('content-type')?.startsWith('application/json')) throw new ApiError(415,'CONTENT_TYPE','Send JSON data.');
-  if (Number(request.headers.get('content-length')) > maxBytes) throw new ApiError(413,'TOO_LARGE','Request is too large.');
+  if (Number(request.headers.get('content-length')) > effectiveMax) throw new ApiError(413,'TOO_LARGE','Request is too large.');
   const reader = request.body?.getReader(); let bytes = 0; const chunks: Uint8Array[] = [];
-  if (reader) while (true) { const { done, value } = await reader.read(); if (done) break; bytes += value.byteLength; if (bytes > maxBytes) { await reader.cancel(); throw new ApiError(413,'TOO_LARGE','Request is too large.'); } chunks.push(value); }
+  if (reader) while (true) { const { done, value } = await reader.read(); if (done) break; bytes += value.byteLength; if (bytes > effectiveMax) { await reader.cancel(); throw new ApiError(413,'TOO_LARGE','Request is too large.'); } chunks.push(value); }
   const all = new Uint8Array(bytes); let off=0; for (const c of chunks) { all.set(c,off); off+=c.length; }
   let parsed: unknown; try { parsed = JSON.parse(new TextDecoder().decode(all)); } catch { throw new ApiError(400,'INVALID_JSON','Please send valid JSON.'); }
   const result = schema.safeParse(parsed); if (!result.success) throw new ApiError(400,'INVALID_INPUT',result.error.issues[0]?.message ?? 'Check the submitted details.');

@@ -1,10 +1,11 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Play, ArrowDownUp, ArrowRight, Bookmark, Car, Check, CheckCheck, Clock3, Compass, ExternalLink, Flag, Footprints, Info, LocateFixed, MapPin, Navigation, Search, ShieldCheck, SlidersHorizontal, X, Map, List, CircleHelp, CircleParking } from 'lucide-react';
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import { Play, ArrowDownUp, ArrowRight, Bookmark, Camera, Car, Check, CheckCheck, Clock3, Compass, ExternalLink, Flag, Footprints, Info, LocateFixed, MapPin, Navigation, Search, ShieldCheck, SlidersHorizontal, X, Map, List, CircleHelp, CircleParking } from 'lucide-react';
 import { Dialog } from './Dialog';
 import dynamic from 'next/dynamic';
 import { AiSuggest } from './AiSuggest';
+import { AnprDashboard } from './AnprDashboard';
 const ParkingMap = dynamic(() => import('./ParkingMap').then(mod => mod.ParkingMap), { ssr: false });
 import { PlaceSearch, type PlaceSearchHandle } from './PlaceSearch';
 import { type Place } from '../lib/places';
@@ -13,11 +14,17 @@ import { destinations as initialDestinations,type Destination } from '../lib/cat
 import { distanceLabel,haversine,navigationUrl,type Result,type Facility,type SearchInput,type Evidence,type Point } from '../lib/domain';
 const typeNames={underground:'Underground',surface:'Surface lot',street_side:'Street-side'};
 const accessNames={PUBLIC:'Public access listed',CUSTOMERS_ONLY:'Customers only',PRIVATE:'Private',PERMIT:'Permit required',UNKNOWN:'Check access at entry'};
-const initialForm=():SearchInput=>({destination:initialDestinations[0].point,radius:1000,arrivalAt:new Date().toISOString(),durationMinutes:120,vehicle:'CAR',requirements:[],type:'all',sort:'distance',includeUnknown:true,includeCustomer:false});
+const initialForm=():SearchInput=>({destination:initialDestinations[0].point,radius:1000,arrivalAt:'2026-03-31T09:00:00.000Z',durationMinutes:120,vehicle:'CAR',requirements:[],type:'all',sort:'distance',includeUnknown:true,includeCustomer:false});
 function evidenceNow(e:Evidence):Evidence {return e.expiresAt&&Date.parse(e.expiresAt)<=Date.now()?{state:'UNKNOWN',evidenceClass:'STATIC_LISTING',label:'Mapped parking',source:null,observedAt:null,expiresAt:null,conflict:false}:e;}
 function Brand(){return <Link href="/" className="brand" aria-label="ParkMyCar home"><span className="brand-icon"><CircleParking size={27}/></span><span>park<span className="brand-light">my</span>car<span className="brand-period">.</span></span></Link>;}
+const emptySubscribe = () => () => {};
+function useMounted() {
+  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+}
 export { Brand };
 export default function ParkApp() {
+  const [mainView,setMainView]=useState<'search'|'anpr'>('search');
+  const mounted=useMounted();
   const [places,setPlaces]=useState(initialDestinations),[destination,setDestination]=useState<Destination>(initialDestinations[0]),[query,setQuery]=useState(initialDestinations[0].name);
   const [form,setForm]=useState<SearchInput>(initialForm),[lastSearch,setLastSearch]=useState<SearchInput>(initialForm),[results,setResults]=useState<Result[]>([]),[catalogue,setCatalogue]=useState<Facility[]>([]);
   const [loading,setLoading]=useState(true),[error,setError]=useState(''),[saved,setSaved]=useState<string[]>([]),[selected,setSelected]=useState<string|null>(null),[detail,setDetail]=useState<Result|Facility|null>(null);
@@ -35,7 +42,9 @@ export default function ParkApp() {
       if(!active)return;
       const stored=readSaved();const valid=b?stored.filter(id=>b.catalogue?.some(f=>f.id===id)):stored;setSaved(valid);storeSaved(valid);
       if(b){setPlaces(b.destinations);setCatalogue(b.catalogue??[]);}
-      const id=new URLSearchParams(location.search).get('destination');const p=initialDestinations.find(p=>p.id===id)??initialDestinations[0];setDestination(p);setQuery(p.name);const input={...initialForm(),destination:p.point};setForm(input);await runSearch(input);
+      const params=new URLSearchParams(location.search);
+      if(params.get('view')==='anpr')setMainView('anpr');
+      const id=params.get('destination');const p=initialDestinations.find(p=>p.id===id)??initialDestinations[0];setDestination(p);setQuery(p.name);const input={...initialForm(),arrivalAt:new Date().toISOString(),destination:p.point};setForm(input);await runSearch(input);
     }
     void initialize();
     const timer=setInterval(()=>setTick(n=>n+1),30000);return()=>{active=false;clearInterval(timer);controller.current?.abort();};
@@ -109,42 +118,139 @@ export default function ParkApp() {
   async function sendReport(){if(!detail)return;setSending(true);try{await api('reports',{facilityId:detail.id,category:reportType,observedAt:new Date().toISOString()});setReportDone(true);}catch(e){setToast((e as Error).message);}finally{setSending(false);}}
   const detailEvidence=detail&&'evidence'in detail?evidenceNow(detail.evidence):null;
   return <>
-    <header className="site-header"><Brand/><nav className="main-nav" aria-label="Main navigation"><button className={tab==='nearby'?'active':''} onClick={()=>setTab('nearby')}>Find parking</button><button className={tab==='saved'?'active':''} onClick={()=>setTab('saved')}>My shortlist <span className="nav-count">{saved.length}</span></button><button onClick={()=>setModal('about')}>How it works</button><button onClick={()=>setModal('video')} style={{display:'inline-flex',alignItems:'center',gap:5,background:'rgba(124,58,237,0.12)',color:'#a78bfa',border:'1px solid rgba(139,92,246,0.3)',borderRadius:6,padding:'4px 10px',fontWeight:600}}><Play size={13} style={{fill:'currentColor'}}/> 90s Demo</button></nav><a href="/workspace" className="workspace-link">Operator workspace <ArrowRight size={15}/></a></header>
+    <header className="site-header"><Brand/><nav className="main-nav" aria-label="Main navigation"><button className={mainView==='search'&&(tab==='nearby'||tab==='saved')?'active':''} onClick={()=>{setMainView('search');setTab('nearby');}}>Find parking</button><button className={mainView==='search'&&tab==='saved'?'active':''} onClick={()=>{setMainView('search');setTab('saved');}}>My shortlist <span className="nav-count">{saved.length}</span></button><button className={mainView==='anpr'?'active anpr-nav-tab':'anpr-nav-tab'} onClick={()=>setMainView(mainView==='anpr'?'search':'anpr')} style={{display:'inline-flex',alignItems:'center',gap:7,background:mainView==='anpr'?'#10b981':'rgba(16,185,129,0.12)',color:mainView==='anpr'?'#ffffff':'#059669',border:'1px solid rgba(16,185,129,0.4)',borderRadius:8,padding:'5px 12px',fontWeight:700,fontSize:13,cursor:'pointer',transition:'all 0.15s ease'}}><Camera size={15}/><span>Live ANPR & Occupancy</span><span style={{width:7,height:7,borderRadius:'50%',background:mainView==='anpr'?'#ffffff':'#10b981',boxShadow:'0 0 6px #10b981'}}/></button><button onClick={()=>setModal('about')}>How it works</button><button onClick={()=>setModal('video')} style={{display:'inline-flex',alignItems:'center',gap:5,background:'rgba(124,58,237,0.12)',color:'#a78bfa',border:'1px solid rgba(139,92,246,0.3)',borderRadius:6,padding:'4px 10px',fontWeight:600}}><Play size={13} style={{fill:'currentColor'}}/> System Video</button></nav><a href="/workspace" className="workspace-link">Operator workspace <ArrowRight size={15}/></a></header>
     <main id="main-content">
-      <section className="search-zone">
-        <div className="intro-line"><div><p className="eyebrow"><span/> PARKING, WITH A PLAN</p><h1>A place for your car.<br className="mobile-break"/> More time for your plans.</h1><p className="intro-copy">Find your destination across India. Plan directions and explore listed parking nearby.</p></div><div className="coverage-badge"><span className="delhi-icon"><MapPin size={22}/></span><span><b>Explore India</b><small>Cities, villages & landmarks</small></span></div></div>
-        <form className="search-bar" onSubmit={e=>void submit(e)}>
-          <div className="destination-field"><MapPin size={21}/><PlaceSearch ref={destinationInput} id="destination" label="WHERE ARE YOU HEADED?" value={query} selected={destination} quickPlaces={places} onChange={setQuery} onSelect={choose}/></div>
-          <div className="small-search-field"><Clock3 size={20}/><div><label htmlFor="arrival">ARRIVING</label><select id="arrival" value={arrival} onChange={e=>setArrival(e.target.value)}><option value="now">Now</option><option value="later">Choose a time</option></select></div></div>
-          <div className="small-search-field vehicle-field"><Car size={21}/><div><label htmlFor="vehicle">VEHICLE</label><select id="vehicle" value={form.vehicle} onChange={e=>setForm(f=>({...f,vehicle:e.target.value as SearchInput['vehicle']}))}><option value="CAR">Car</option><option value="TWO_WHEELER">Two-wheeler</option></select></div></div>
-          <button className="button button-lime search-submit" disabled={loading||resolving}><Search size={19}/>{resolving?'Searching places…':loading?'Finding parking…':query!==destination.name?'Search India':'Find parking'}<ArrowRight size={18}/></button>
-        </form>
-        <div className="search-below"><button className="text-button" onClick={()=>setOriginExpanded(v=>!v)}><Navigation size={14}/>{originExpanded?'Hide start point':'Add a start point'}<span className="optional">optional</span></button><span><ShieldCheck size={14}/> Source details on every listing</span><button className="text-button" onClick={()=>setModal('about')}><CircleHelp size={14}/> About this directory</button></div>
-        {(originExpanded||arrival==='later')&&<div className="extra-fields">{originExpanded&&<><div className="origin-search"><PlaceSearch ref={originInput} id="origin" label="START POINT" value={originText} selected={originPlace} quickPlaces={places} onChange={text=>{setOriginText(text);setOriginPlace(null);setForm(f=>({...f,origin:undefined}));setLastSearch(f=>({...f,origin:undefined}));}} onSelect={chooseOrigin}/></div><button className="button button-outline" onClick={locate} disabled={geoLoading}><LocateFixed size={17}/>{geoLoading?'Locating…':'Use my location'}</button><small>{originText&&!form.origin?'Search and choose your start point.':'Optional. Used for directions; no trip history is saved.'}</small></>}{arrival==='later'&&<label>ARRIVAL TIME · IST<input type="datetime-local" value={customArrival} onChange={e=>setCustomArrival(e.target.value)}/></label>}</div>}
-        <div className="destination-summary"><span className="destination-summary-icon"><MapPin size={20}/></span><div className="destination-summary-copy"><small>SELECTED DESTINATION</small><strong>{destination.name}</strong><span>{destination.subtitle}</span><small>From {form.origin?(originPlace?.name??'your selected start point'):'your current location in Google Maps'}</small></div><div className="destination-summary-actions">{destinationReady&&originReady?<><a className="button button-dark" href={navigationUrl(destination.point,'driving',form.origin)} target="_blank" rel="noreferrer"><Navigation size={16}/> Directions in Google Maps <ExternalLink size={13}/></a><a className="button button-outline" href={navigationUrl(destination.point,'walking',form.origin)} target="_blank" rel="noreferrer"><Footprints size={16}/> Walk</a></>:<button className="button button-dark" onClick={()=>void prepareDirections()} disabled={resolving}><Search size={16}/>{destinationReady?'Confirm start point':'Confirm destination'}</button>}{destination.sourceUrl&&<a className="place-source" href={destination.sourceUrl} target="_blank" rel="noreferrer">View map record <ExternalLink size={12}/></a>}</div></div>
-      </section>
-      <section className="discovery-section">
-        <div className="discovery-toolbar"><div className="result-tabs"><button className={tab==='nearby'?'active':''} onClick={()=>setTab('nearby')}>Nearby parking <span>{results.length}</span></button><button className={tab==='saved'?'active':''} onClick={()=>setTab('saved')}><Bookmark size={15}/> Shortlist <span>{saved.length}</span></button></div><div className="toolbar-actions"><span className="distance-explainer"><Info size={13}/> Distances are straight-line</span><button className="filter-button" onClick={()=>setModal('filters')}><SlidersHorizontal size={16}/> Filters{(form.type!=='all'||form.requirements.length>0||form.radius!==1000)&&<i/>}</button><label className="sort-control"><ArrowDownUp size={15}/><select aria-label="Sort parking" value={form.sort} onChange={e=>{const next={...form,sort:e.target.value as SearchInput['sort']};setForm(next);void runSearch({...lastSearch,sort:next.sort});}}><option value="distance">Nearest first</option><option value="price">Known price first</option></select></label></div></div>
-        <div className="mobile-view-toggle"><button className={mobileView==='list'?'active':''} onClick={()=>setMobileView('list')}><List size={16}/> List</button><button className={mobileView==='map'?'active':''} onClick={()=>setMobileView('map')}><Map size={16}/> Map</button></div>
-        <div className={`discovery-grid view-${mobileView}`}>
-          <aside className="results-panel" aria-label="Parking results" aria-busy={loading}>
-            {tab==='saved'&&saved.length>0&&<button className="text-button" style={{fontSize:10,marginBottom:14}} onClick={()=>{setSaved([]);storeSaved([]);}}>Clear shortlist</button>}<div className="results-heading"><div><h2>{tab==='nearby'?'A good place to start.':'Your parking plan.'}</h2><p>{tab==='nearby'?`Parking within ${distanceLabel(lastSearch.radius)} of your destination`:'Up to three options, saved on this device'}</p></div><span className="result-total">{visible.length}</span></div>
-            {results.length>0&&tab==='nearby'&&<AiSuggest results={results} destinationName={destination.name} vehicle={form.vehicle} durationMinutes={form.durationMinutes} searchKey={aiSearchKey}/>}
-            {error&&<div className="error-card" role="alert"><Info size={18}/><p>{error}</p><button onClick={()=>void submit()}>Try again</button></div>}
-            {loading?<div className="skeleton-list" aria-label="Loading parking results">{[1,2,3].map(n=><div className="skeleton-card" key={n}><i/><span/><span/><b/></div>)}</div>:!visible.length?<div className="empty-state"><CircleParking size={40}/><h3>{tab==='saved'?'Good plans have a backup.':'No matching parking here yet.'}</h3><p>{tab==='saved'?'Tap the bookmark on a parking card to build your shortlist.':'Your destination is ready for directions. Our parking catalogue currently covers Connaught Place, New Delhi; other places may have parking that is not listed here yet.'}</p><button className="button button-dark" onClick={()=>{if(tab==='saved')setTab('nearby');else{const input={...initialForm(),destination:initialDestinations[0].point,radius:1500};setChosen(initialDestinations[0]);setForm(input);void runSearch(input);}}}>{tab==='saved'?'Explore parking':'Explore Connaught Place'}<ArrowRight size={16}/></button></div>:<div className="parking-cards">{visible.map((f,index)=>{const e=evidenceNow(f.evidence);return <article className={`parking-card ${selected===f.id?'selected':''}`} key={f.id} onMouseEnter={()=>setSelected(f.id)}>
-              <div className="card-top"><span className={`facility-symbol ${f.type}`}><CircleParking size={25}/><small>{String(index+1).padStart(2,'0')}</small></span><div><span className="card-kicker">{typeNames[f.type]}</span><button className="card-title" onClick={()=>showDetails(f)}>{f.name}</button><p>Connaught Place</p></div><button className={`save-button ${saved.includes(f.id)?'saved':''}`} aria-label={`${saved.includes(f.id)?'Remove':'Save'} ${f.name}`} aria-pressed={saved.includes(f.id)} onClick={()=>toggleSave(f.id)}><Bookmark size={18} fill={saved.includes(f.id)?'currentColor':'none'}/></button></div>
-              <div className="card-stats"><span><MapPin size={15}/><b>{distanceLabel(f.distanceMeters)}</b> away</span><span className="price">{f.totalCost!==null?<><b>₹{f.totalCost}</b><small> / {lastSearch.durationMinutes/60}h</small></>:<><b>Check at entry</b><small>Pricing</small></>}</span></div>
-              <div className="card-evidence"><span className={`evidence-badge ${e.evidenceClass!=='STATIC_LISTING'?'reported':''}`}><span/>{e.label}</span>{f.sources.some(s=>s.name==='New Delhi Municipal Council')&&<span className="official-reference"><ShieldCheck size={13}/> NDMC listed</span>}</div>
-              {e.state!=='UNKNOWN'&&<p className="observed-state">{e.state==='FULL'?'Reported full':e.state==='AVAILABLE'?'Space reported': 'Limited space reported'} · {e.observedAt?new Date(e.observedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}):''} IST</p>}
-              <div className="card-bottom"><span>{f.reasons[2]??(f.type==='underground'?'Below street level':(f.access==='PUBLIC'?'Mapped access: public':f.access==='CUSTOMERS_ONLY'?'Customers only':'Check access at entry'))}</span><button onClick={()=>showDetails(f)}>View details <ArrowRight size={15}/></button></div>
-            </article>;})}</div>}
-            {saved.length>=2&&<button className="compare-button" onClick={()=>setModal('compare')}><CheckCheck size={18}/> Compare {saved.length} saved choices <ArrowRight size={17}/></button>}
-            <div className="list-note"><Info size={16}/><p>Map listings describe parking locations. Open a listing for its source, access details and any recent reports.</p></div>
-          </aside>
-          <ParkingMap facilities={visible} destination={lastSearch.destination} destinationName={destination.name} destinationKind={destination.kind} selectedId={selected} onSelect={id=>{const f=visible.find(x=>x.id===id);if(f)showDetails(f);}} pinMode={pinMode} onPin={pickPin} onPinMode={()=>{setPinMode(v=>!v);setMobileView('map');}}/>
-        </div>
-      </section>
-      <section className="value-strip"><div><Compass size={22}/><span><b>Destination first</b><small>Parking close to where you want to be.</small></span></div><div><ShieldCheck size={22}/><span><b>Know the source</b><small>Clear details, with the evidence attached.</small></span></div><div><Bookmark size={22}/><span><b>Have an alternative</b><small>Keep your next choice a tap away.</small></span></div><a href="/research">The research behind ParkMyCar <ArrowRight size={16}/></a></section>
+      {mainView==='anpr' ? (
+        <section className="anpr-main-zone" style={{maxWidth:1600,margin:'0 auto',padding:'28px 4.2%'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24,flexWrap:'wrap',gap:16}}>
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div style={{width:42,height:42,borderRadius:10,background:'#10b981',display:'grid',placeItems:'center',color:'#fff',boxShadow:'0 4px 14px rgba(16,185,129,0.3)'}}>
+                  <Camera size={24}/>
+                </div>
+                <div>
+                  <h1 style={{fontSize:28,letterSpacing:'-0.6px',margin:0,fontWeight:700}}>Live AI ANPR &amp; Occupancy System</h1>
+                  <p style={{fontSize:13,color:'#64748b',marginTop:3}}>
+                    Real-time automatic number plate recognition &bull; Dual-camera entry/exit tracking &bull; Authoritative capacity telemetry
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex',gap:10,alignItems:'center'}}>
+              <button 
+                className="button button-outline"
+                onClick={()=>setMainView('search')}
+                style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,padding:'9px 15px'}}
+              >
+                <CircleParking size={16}/> Back to Parking Search
+              </button>
+              <a 
+                href="/workspace" 
+                className="button button-dark"
+                style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,padding:'9px 15px'}}
+              >
+                Operator Workspace <ArrowRight size={15}/>
+              </a>
+            </div>
+          </div>
+          <AnprDashboard facilityId={results[0]?.id || 'palika'} />
+        </section>
+      ) : (
+        <>
+          <section className="search-zone">
+            <div className="intro-line"><div><p className="eyebrow"><span/> PARKING, WITH A PLAN</p><h1>A place for your car.<br className="mobile-break"/> More time for your plans.</h1><p className="intro-copy">Find your destination across India. Plan directions and explore listed parking nearby.</p></div><div className="coverage-badge"><span className="delhi-icon"><MapPin size={22}/></span><span><b>Explore India</b><small>Cities, villages & landmarks</small></span></div></div>
+            <form className="search-bar" onSubmit={e=>void submit(e)}>
+              <div className="destination-field"><MapPin size={21}/><PlaceSearch ref={destinationInput} id="destination" label="WHERE ARE YOU HEADED?" value={query} selected={destination} quickPlaces={places} onChange={setQuery} onSelect={choose}/></div>
+              <div className="small-search-field"><Clock3 size={20}/><div><label htmlFor="arrival">ARRIVING</label><select id="arrival" value={arrival} onChange={e=>setArrival(e.target.value)}><option value="now">Now</option><option value="later">Choose a time</option></select></div></div>
+              <div className="small-search-field vehicle-field"><Car size={21}/><div><label htmlFor="vehicle">VEHICLE</label><select id="vehicle" value={form.vehicle} onChange={e=>setForm(f=>({...f,vehicle:e.target.value as SearchInput['vehicle']}))}><option value="CAR">Car</option><option value="TWO_WHEELER">Two-wheeler</option></select></div></div>
+              <button className="button button-lime search-submit" disabled={loading||resolving}><Search size={19}/>{resolving?'Searching places…':loading?'Finding parking…':query!==destination.name?'Search India':'Find parking'}<ArrowRight size={18}/></button>
+            </form>
+            <div className="search-below"><button className="text-button" onClick={()=>setOriginExpanded(v=>!v)}><Navigation size={14}/>{originExpanded?'Hide start point':'Add a start point'}<span className="optional">optional</span></button><span><ShieldCheck size={14}/> Source details on every listing</span><button className="text-button" onClick={()=>setModal('about')}><CircleHelp size={14}/> About this directory</button></div>
+            {(originExpanded||arrival==='later')&&<div className="extra-fields">{originExpanded&&<><div className="origin-search"><PlaceSearch ref={originInput} id="origin" label="START POINT" value={originText} selected={originPlace} quickPlaces={places} onChange={text=>{setOriginText(text);setOriginPlace(null);setForm(f=>({...f,origin:undefined}));setLastSearch(f=>({...f,origin:undefined}));}} onSelect={chooseOrigin}/></div><button className="button button-outline" onClick={locate} disabled={geoLoading}><LocateFixed size={17}/>{geoLoading?'Locating…':'Use my location'}</button><small>{originText&&!form.origin?'Search and choose your start point.':'Optional. Used for directions; no trip history is saved.'}</small></>}{arrival==='later'&&<label>ARRIVAL TIME · IST<input type="datetime-local" value={customArrival} onChange={e=>setCustomArrival(e.target.value)}/></label>}</div>}
+            <div className="destination-summary"><span className="destination-summary-icon"><MapPin size={20}/></span><div className="destination-summary-copy"><small>SELECTED DESTINATION</small><strong>{destination.name}</strong><span>{destination.subtitle}</span><small>From {form.origin?(originPlace?.name??'your selected start point'):'your current location in Google Maps'}</small></div><div className="destination-summary-actions">{destinationReady&&originReady?<><a className="button button-dark" href={navigationUrl(destination.point,'driving',form.origin)} target="_blank" rel="noreferrer"><Navigation size={16}/> Directions in Google Maps <ExternalLink size={13}/></a><a className="button button-outline" href={navigationUrl(destination.point,'walking',form.origin)} target="_blank" rel="noreferrer"><Footprints size={16}/> Walk</a></>:<button className="button button-dark" onClick={()=>void prepareDirections()} disabled={resolving}><Search size={16}/>{destinationReady?'Confirm start point':'Confirm destination'}</button>}{destination.sourceUrl&&<a className="place-source" href={destination.sourceUrl} target="_blank" rel="noreferrer">View map record <ExternalLink size={12}/></a>}</div></div>
+          </section>
+
+          <div style={{maxWidth:1600,margin:'0 auto',padding:'0 4.2% 16px'}}>
+            <div 
+              onClick={()=>setMainView('anpr')}
+              style={{
+                display:'flex',
+                alignItems:'center',
+                justifyContent:'space-between',
+                background:'linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%)',
+                border:'1px solid #a7f3d0',
+                borderRadius:12,
+                padding:'12px 18px',
+                cursor:'pointer',
+                boxShadow:'0 2px 10px rgba(16,185,129,0.08)',
+                transition:'all 0.15s ease'
+              }}
+            >
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div style={{position:'relative',display:'grid',placeItems:'center',width:36,height:36,borderRadius:9,background:'#10b981',color:'#fff',flexShrink:0}}>
+                  <Camera size={19}/>
+                  <span style={{position:'absolute',top:-2,right:-2,width:8,height:8,borderRadius:'50%',background:'#22c55e',boxShadow:'0 0 6px #22c55e'}}/>
+                </div>
+                <div>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <strong style={{fontSize:13,color:'#065f46'}}>AI ANPR &amp; Live Occupancy Enabled</strong>
+                    <span style={{fontSize:10,background:'#10b981',color:'#fff',padding:'1px 6px',borderRadius:4,fontWeight:700}}>LIVE CAMERA LINKED</span>
+                  </div>
+                  <p style={{fontSize:11,color:'#047857',margin:'2px 0 0'}}>
+                    Palika Underground facility linked with Entry &amp; Exit cameras. Click to test AI number plate recognition and live occupancy.
+                  </p>
+                </div>
+              </div>
+              <span style={{fontSize:12,fontWeight:700,color:'#059669',display:'inline-flex',alignItems:'center',gap:6}}>
+                Open ANPR Dashboard <ArrowRight size={14}/>
+              </span>
+            </div>
+          </div>
+
+          <section className="discovery-section">
+            <div className="discovery-toolbar"><div className="result-tabs"><button className={tab==='nearby'?'active':''} onClick={()=>setTab('nearby')}>Nearby parking <span>{results.length}</span></button><button className={tab==='saved'?'active':''} onClick={()=>setTab('saved')}><Bookmark size={15}/> Shortlist <span>{saved.length}</span></button></div><div className="toolbar-actions"><span className="distance-explainer"><Info size={13}/> Distances are straight-line</span><button className="filter-button" onClick={()=>setModal('filters')}><SlidersHorizontal size={16}/> Filters{(form.type!=='all'||form.requirements.length>0||form.radius!==1000)&&<i/>}</button><label className="sort-control"><ArrowDownUp size={15}/><select aria-label="Sort parking" value={form.sort} onChange={e=>{const next={...form,sort:e.target.value as SearchInput['sort']};setForm(next);void runSearch({...lastSearch,sort:next.sort});}}><option value="distance">Nearest first</option><option value="price">Known price first</option></select></label></div></div>
+            <div className="mobile-view-toggle"><button className={mobileView==='list'?'active':''} onClick={()=>setMobileView('list')}><List size={16}/> List</button><button className={mobileView==='map'?'active':''} onClick={()=>setMobileView('map')}><Map size={16}/> Map</button></div>
+            <div className={`discovery-grid view-${mobileView}`}>
+              <aside className="results-panel" aria-label="Parking results" aria-busy={loading}>
+                {tab==='saved'&&saved.length>0&&<button className="text-button" style={{fontSize:10,marginBottom:14}} onClick={()=>{setSaved([]);storeSaved([]);}}>Clear shortlist</button>}<div className="results-heading"><div><h2>{tab==='nearby'?'A good place to start.':'Your parking plan.'}</h2><p>{tab==='nearby'?`Parking within ${distanceLabel(lastSearch.radius)} of your destination`:'Up to three options, saved on this device'}</p></div><span className="result-total">{visible.length}</span></div>
+                {results.length>0&&tab==='nearby'&&<AiSuggest results={results} destinationName={destination.name} vehicle={form.vehicle} durationMinutes={form.durationMinutes} searchKey={aiSearchKey}/>}
+                {error&&<div className="error-card" role="alert"><Info size={18}/><p>{error}</p><button onClick={()=>void submit()}>Try again</button></div>}
+                {loading?<div className="skeleton-list" aria-label="Loading parking results">{[1,2,3].map(n=><div className="skeleton-card" key={n}><i/><span/><span/><b/></div>)}</div>:!visible.length?<div className="empty-state"><CircleParking size={40}/><h3>{tab==='saved'?'Good plans have a backup.':'No matching parking here yet.'}</h3><p>{tab==='saved'?'Tap the bookmark on a parking card to build your shortlist.':'Your destination is ready for directions. Our parking catalogue currently covers Connaught Place, New Delhi; other places may have parking that is not listed here yet.'}</p><button className="button button-dark" onClick={()=>{if(tab==='saved')setTab('nearby');else{const input={...initialForm(),destination:initialDestinations[0].point,radius:1500};setChosen(initialDestinations[0]);setForm(input);void runSearch(input);}}}>{tab==='saved'?'Explore parking':'Explore Connaught Place'}<ArrowRight size={16}/></button></div>:<div className="parking-cards">{visible.map((f,index)=>{const e=evidenceNow(f.evidence);return <article className={`parking-card ${selected===f.id?'selected':''}`} key={f.id} onMouseEnter={()=>setSelected(f.id)}>
+                  <div className="card-top"><span className={`facility-symbol ${f.type}`}><CircleParking size={25}/><small>{String(index+1).padStart(2,'0')}</small></span><div><span className="card-kicker">{typeNames[f.type]}</span><button className="card-title" onClick={()=>showDetails(f)}>{f.name}</button><p>Connaught Place</p></div><button className={`save-button ${saved.includes(f.id)?'saved':''}`} aria-label={`${saved.includes(f.id)?'Remove':'Save'} ${f.name}`} aria-pressed={saved.includes(f.id)} onClick={()=>toggleSave(f.id)}><Bookmark size={18} fill={saved.includes(f.id)?'currentColor':'none'}/></button></div>
+                  <div className="card-stats"><span><MapPin size={15}/><b>{distanceLabel(f.distanceMeters)}</b> away</span><span className="price">{f.totalCost!==null?<><b>₹{f.totalCost}</b><small> / {lastSearch.durationMinutes/60}h</small></>:<><b>Check at entry</b><small>Pricing</small></>}</span></div>
+                  <div className="card-evidence"><span className={`evidence-badge ${e.evidenceClass!=='STATIC_LISTING'?'reported':''}`}><span/>{e.label}</span>{f.sources.some(s=>s.name==='New Delhi Municipal Council')&&<span className="official-reference"><ShieldCheck size={13}/> NDMC listed</span>}</div>
+                  <div style={{marginTop:8}}>
+                    <button 
+                      onClick={(e)=>{e.stopPropagation();setMainView('anpr');}}
+                      style={{
+                        display:'inline-flex',
+                        alignItems:'center',
+                        gap:5,
+                        background:'rgba(16,185,129,0.12)',
+                        color:'#047857',
+                        border:'1px solid rgba(16,185,129,0.3)',
+                        borderRadius:6,
+                        padding:'4px 9px',
+                        fontSize:10,
+                        fontWeight:600,
+                        cursor:'pointer'
+                      }}
+                    >
+                      <Camera size={12}/> Live ANPR Camera &amp; Occupancy Linked &bull; View Feed &rarr;
+                    </button>
+                  </div>
+                  {e.state!=='UNKNOWN'&&<p className="observed-state" suppressHydrationWarning>{e.state==='FULL'?'Reported full':e.state==='AVAILABLE'?'Space reported': 'Limited space reported'} · {e.observedAt && mounted ? new Date(e.observedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}):''} IST</p>}
+                  <div className="card-bottom"><span>{f.reasons[2]??(f.type==='underground'?'Below street level':(f.access==='PUBLIC'?'Mapped access: public':f.access==='CUSTOMERS_ONLY'?'Customers only':'Check access at entry'))}</span><button onClick={()=>showDetails(f)}>View details <ArrowRight size={15}/></button></div>
+                </article>;})}</div>}
+                {saved.length>=2&&<button className="compare-button" onClick={()=>setModal('compare')}><CheckCheck size={18}/> Compare {saved.length} saved choices <ArrowRight size={17}/></button>}
+                <div className="list-note"><Info size={16}/><p>Map listings describe parking locations. Open a listing for its source, access details and any recent reports.</p></div>
+              </aside>
+              <ParkingMap facilities={visible} destination={lastSearch.destination} destinationName={destination.name} destinationKind={destination.kind} selectedId={selected} onSelect={id=>{const f=visible.find(x=>x.id===id);if(f)showDetails(f);}} pinMode={pinMode} onPin={pickPin} onPinMode={()=>{setPinMode(v=>!v);setMobileView('map');}}/>
+            </div>
+          </section>
+          <section className="value-strip"><div><Compass size={22}/><span><b>Destination first</b><small>Parking close to where you want to be.</small></span></div><div><ShieldCheck size={22}/><span><b>Know the source</b><small>Clear details, with the evidence attached.</small></span></div><div><Bookmark size={22}/><span><b>Have an alternative</b><small>Keep your next choice a tap away.</small></span></div><a href="/research">The research behind ParkMyCar <ArrowRight size={16}/></a></section>
+        </>
+      )}
     </main>
     <footer className="site-footer"><Brand/><p>Park near your plans.</p><div><a href="/research">Research & sources</a><button onClick={()=>setModal('about')}>Data & privacy</button><a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noreferrer">Report a map issue <ExternalLink size={12}/></a></div></footer>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}<button aria-label="Dismiss message" onClick={()=>setToast('')}><X size={16}/></button></div>}
@@ -158,7 +264,7 @@ export default function ParkApp() {
     {modal==='compare'&&<Dialog title="Your options, side by side" wide onClose={()=>setModal(null)}><p className="muted">Keep a first choice and an alternative. Saving a location does not reserve a bay.</p><div className="comparison-scroll"><table className="compare-table"><thead><tr><th>YOUR TRIP</th>{savedFacilities.map((f,i)=><th key={f.id}><span className="comparison-number">0{i+1}</span>{f.name}<button className="icon-button" onClick={()=>toggleSave(f.id)} aria-label={`Remove ${f.name}`}><X size={14}/></button></th>)}</tr></thead><tbody>{[['Distance',...savedFacilities.map(f=>`${distanceLabel(haversine(f.point,lastSearch.destination))} · straight-line`)],['Type',...savedFacilities.map(f=>typeNames[f.type])],['Access',...savedFacilities.map(f=>accessNames[f.access])],['Rate',...savedFacilities.map(f=>f.rate?`₹${f.rate.amount} / ${f.rate.unit.replace('PER_','').toLowerCase()}`:'Check at entry')],['Hours',...savedFacilities.map(f=>f.hours?'Hours recorded':'Check at entry')],['Source',...savedFacilities.map(f=>f.sources.map(s=>s.name).join(' · '))]].map(row=><tr key={row[0]}>{row.map((cell,i)=>i===0?<th key={i}>{cell}</th>:<td key={i}>{cell}</td>)}</tr>)}<tr><th>Next step</th>{savedFacilities.map(f=><td key={f.id}><a className="button button-dark" href={navigationUrl(f.point,'driving',lastSearch.origin)} target="_blank" rel="noreferrer">Directions <Navigation size={15}/></a></td>)}</tr></tbody></table></div></Dialog>}
     {modal==='report'&&<Dialog title={`Report · ${detail?.name}`} onClose={()=>setModal(null)}>{reportDone?<div className="success-state"><CheckCheck size={40}/><h3>Thanks for the update.</h3><p>Your report is in the review queue. It will be checked before it appears as a community update.</p><button className="button button-dark" onClick={()=>setModal(null)}>Back to details</button></div>:<><p className="muted">What did you notice on arrival? Submit a recent, first-hand observation.</p><fieldset className="report-options"><legend>Arrival outcome</legend>{[['FOUND_SPACE','I found a space','Parking was possible when I arrived'],['FULL','It was full','No space when I arrived'],['CLOSED','It was closed','The location was not operating'],['DETAILS_WRONG','A detail needs correcting','Access or listing information needs review']].map(([id,title,sub])=><label className={reportType===id?'report-option active':'report-option'} key={id}><input type="radio" name="report" value={id} checked={reportType===id} onChange={()=>setReportType(id)}/><span><b>{title}</b><small>{sub}</small></span></label>)}</fieldset><p className="fine-print">No name, plate number or GPS is collected in this form. Reports are retained for up to 30 days.</p><button className="button button-dark full-width" disabled={sending} onClick={sendReport}>{sending?'Sending…':'Submit report'}<ArrowRight size={16}/></button></>}</Dialog>}
     
-    {modal==='video'&&<Dialog title="ParkMyCar — 90s Product Walkthrough" wide onClose={()=>setModal(null)}>
+    {modal==='video'&&<Dialog title="ParkMyCar — Product Architecture Walkthrough" wide onClose={()=>setModal(null)}>
       <div style={{marginTop:12,borderRadius:12,overflow:'hidden',background:'#000',boxShadow:'0 8px 30px rgba(0,0,0,0.5)'}}>
         <video controls autoPlay style={{width:'100%',maxHeight:'65vh',display:'block'}} src="/video/demo.mp4">
           Your browser does not support the video tag.
@@ -166,7 +272,7 @@ export default function ParkApp() {
       </div>
       <div style={{marginTop:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
         <p className="muted" style={{fontSize:13,margin:0}}>
-          Full 90-second voiceover demonstration of destination parking discovery, evidence integrity, and decision engine.
+          Complete voiceover demonstration of destination parking discovery, evidence integrity, and decision engine.
         </p>
         <a href="/research" className="button button-outline" style={{fontSize:12,padding:'6px 12px'}}>
           View Research & Deck →

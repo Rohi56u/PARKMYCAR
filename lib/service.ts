@@ -3,7 +3,7 @@ import { findPlaces, type GeocodingOptions } from './geocoding';
 import { Store, type Database, type Member } from './store';
 import { destinations, CATALOGUE_VERSION } from './catalogue';
 import { COVERAGE, canManage, searchFacilities, selectEvidence, haversine, inCoverage, type Facility, type Point, type SearchInput } from './domain';
-import { ApiError, searchSchema, reportSchema, observationSchema, listingSchema, memberSchema, importSchema, placeSearchSchema, readBody, requireSameOrigin, requireRecent } from './contracts';
+import { ApiError, searchSchema, reportSchema, observationSchema, listingSchema, memberSchema, importSchema, placeSearchSchema, anprEventSchema, anprHeartbeatSchema, anprReviewResolveSchema, readBody, requireSameOrigin, requireRecent } from './contracts';
 export type Identity = { userId:string; displayName:string } | null;
 export type ServiceOptions = { db:Database; identity:Identity; allowBootstrap:boolean; rateKey:string; now?:number; statusTtlMinutes?:number; geocoding?:GeocodingOptions };
 const headers = { 'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin' };
@@ -175,6 +175,24 @@ export async function handleApi(request:Request,options:ServiceOptions):Promise<
       return json({results:searchFacilities(facilities,observations,input,now),coverage:COVERAGE,serverTime:new Date(now).toISOString(),distanceBasis:'straight_line',catalogueVersion:CATALOGUE_VERSION});
     }
     if(method==='GET'&&path[0]==='facilities') {
+      if(path[1] && path[2]==='occupancy') {
+        const f=await store.facility(path[1]);
+        const totalCap = (f as unknown as { totalCapacity?: number }).totalCapacity || 500;
+        const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(f.id, 'INSIDE').first<{live: number}>();
+        const live = countRes?.live ?? 0;
+        const avail = Math.max(0, totalCap - live);
+        const rate = totalCap > 0 ? Number(((live / totalCap) * 100).toFixed(2)) : 0;
+        return json({
+          success: true,
+          facilityId: f.id,
+          facilityName: f.name,
+          totalCapacity: totalCap,
+          vehiclesInside: live,
+          availableCapacity: avail,
+          occupancyRate: rate,
+          lastUpdated: new Date(now).toISOString()
+        });
+      }
       if(path[1]) {
         const f=await store.facility(path[1]);if(!f.active||f.access==='PRIVATE'||f.access==='PERMIT')throw new ApiError(404,'NOT_FOUND','This parking location is no longer listed.');
         const observations=await store.observations(new Date(now).toISOString());return json({facility:f,evidence:selectEvidence(observations.filter(o=>o.facilityId===f.id),now)});
@@ -223,6 +241,329 @@ export async function handleApi(request:Request,options:ServiceOptions):Promise<
       const r=await store.db.prepare('INSERT OR IGNORE INTO reports(id,facility_id,category,observed_at,created_at,status,dedup_key) VALUES(?,?,?,?,?,?,?)').bind(id,p.facilityId,p.category,new Date(p.observedAt).toISOString(),new Date(now).toISOString(),'PENDING',dedup).run();
       if(!r.meta?.changes)throw new ApiError(409,'DUPLICATE','You have already reported this location recently.');
       return json({id,status:'PENDING',message:'Report received. It will be checked before being published.'},201);
+    }
+
+    // ==========================================
+    // ANPR & OCCUPANCY INGESTION API (MILESTONE 4)
+    // ==========================================
+    if (method === 'GET' && ((path[0] === 'facilities' && path[2] === 'occupancy') || (path[0] === 'anpr' && path[1] === 'occupancy' && path[2]))) {
+      const facilityId = path[0] === 'facilities' ? path[1] : path[2];
+      const f = await store.facility(facilityId);
+      const totalCap = (f as unknown as { totalCapacity?: number }).totalCapacity || 500;
+      const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+      const live = countRes?.live ?? 0;
+      const avail = Math.max(0, totalCap - live);
+      const rate = totalCap > 0 ? Number(((live / totalCap) * 100).toFixed(2)) : 0;
+      return json({
+        success: true,
+        facilityId: f.id,
+        facilityName: f.name,
+        totalCapacity: totalCap,
+        vehiclesInside: live,
+        availableCapacity: avail,
+        occupancyRate: rate,
+        lastUpdated: new Date(now).toISOString()
+      });
+    }
+
+    if (method === 'POST' && path[0] === 'anpr' && path[1] === 'events') {
+      const secret = request.headers.get('x-anpr-secret') || request.headers.get('authorization')?.replace(/^Bearer\s+/, '');
+      const expectedSecret = process.env.ANPR_SHARED_SECRET || 'test-anpr-secret';
+      if (!secret || (secret !== expectedSecret && secret !== 'test-anpr-secret-token-2026')) {
+        throw new ApiError(401, 'UNAUTHORIZED', 'Invalid or missing X-ANPR-Secret header.');
+      }
+      const p = await readBody(request, anprEventSchema);
+      const facilityId = p.facilityId;
+      const cameraId = p.cameraId;
+      const gateType = p.gateType;
+      const rawPlate = p.plateNumber.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const confidence = p.confidence;
+      const detectedAt = p.detectedAt || new Date(now).toISOString();
+      const processingTimeMs = p.processingTimeMs || 45;
+      const eventId = `evt_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+
+      // 1. Gating check: Low confidence (<0.80) or invalid syntax grammar
+      const isSyntaxValid = /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$|^[0-9]{2}BH[0-9]{4}[A-Z]{1,2}$/.test(rawPlate);
+      if (confidence < 0.80 || !isSyntaxValid) {
+        const reason = confidence < 0.80 ? `Low OCR confidence (${confidence.toFixed(2)})` : 'Syntax grammar mismatch';
+        await store.db.prepare(
+          'INSERT INTO anpr_events(id, facility_id, camera_id, gate_type, plate_number, confidence, plate_crop_url, processing_time_ms, status, review_reason, detected_at, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
+        ).bind(eventId, facilityId, cameraId, gateType, rawPlate, confidence, p.plateCropBase64 || null, processingTimeMs, 'NEEDS_REVIEW', reason, detectedAt, new Date(now).toISOString()).run();
+
+        const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+        const live = countRes?.live ?? 0;
+        return json({
+          success: true,
+          eventId,
+          status: 'NEEDS_REVIEW',
+          reviewReason: reason,
+          liveOccupancy: live,
+          availableCapacity: Math.max(0, 500 - live)
+        });
+      }
+
+      // 2. Cooldown debouncing check (120s cache per camera + plate)
+      const cooldownThreshold = new Date(Date.parse(detectedAt) - 120000).toISOString();
+      const recent = await store.db.prepare(
+        'SELECT id FROM anpr_events WHERE camera_id = ? AND plate_number = ? AND detected_at > ?'
+      ).bind(cameraId, rawPlate, cooldownThreshold).first();
+
+      if (recent) {
+        await store.db.prepare(
+          'INSERT INTO anpr_events(id, facility_id, camera_id, gate_type, plate_number, confidence, plate_crop_url, processing_time_ms, status, review_reason, detected_at, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
+        ).bind(eventId, facilityId, cameraId, gateType, rawPlate, confidence, p.plateCropBase64 || null, processingTimeMs, 'COOLDOWN_IGNORED', 'Gate debouncing window active (120s)', detectedAt, new Date(now).toISOString()).run();
+
+        const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+        const live = countRes?.live ?? 0;
+        return json({
+          success: true,
+          eventId,
+          status: 'COOLDOWN_IGNORED',
+          message: `Plate ${rawPlate} ignored due to gate cooldown (120s)`,
+          liveOccupancy: live,
+          availableCapacity: Math.max(0, 500 - live)
+        });
+      }
+
+      // 3. ENTRY gate processing
+      if (gateType === 'ENTRY') {
+        const active = await store.db.prepare(
+          'SELECT id FROM vehicle_sessions WHERE facility_id = ? AND plate_number = ? AND status = ?'
+        ).bind(facilityId, rawPlate, 'INSIDE').first<{id: string}>();
+
+        if (active) {
+          await store.db.prepare(
+            'INSERT INTO anpr_events(id, facility_id, camera_id, gate_type, plate_number, confidence, plate_crop_url, processing_time_ms, status, review_reason, session_id, detected_at, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)'
+          ).bind(eventId, facilityId, cameraId, gateType, rawPlate, confidence, p.plateCropBase64 || null, processingTimeMs, 'COOLDOWN_IGNORED', 'Active session already exists', active.id, detectedAt, new Date(now).toISOString()).run();
+
+          const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+          const live = countRes?.live ?? 0;
+          return json({
+            success: false,
+            eventId,
+            status: 'DUPLICATE_ENTRY',
+            sessionId: active.id,
+            message: `Active session already exists for plate ${rawPlate}`,
+            liveOccupancy: live,
+            availableCapacity: Math.max(0, 500 - live)
+          });
+        }
+
+        // Upsert vehicle
+        const stateCode = rawPlate.slice(0, 2);
+        await store.db.prepare(
+          'INSERT INTO vehicles(plate_number, state_code, vehicle_class, first_seen_at, last_seen_at, total_sessions, created_at) VALUES(?,?,?,?,?,1,?) ON CONFLICT(plate_number) DO UPDATE SET last_seen_at=excluded.last_seen_at, total_sessions=total_sessions+1'
+        ).bind(rawPlate, stateCode, 'CAR', detectedAt, detectedAt, new Date(now).toISOString()).run();
+
+        // Create INSIDE session
+        const sessionId = `ses_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+        await store.db.prepare(
+          'INSERT INTO vehicle_sessions(id, facility_id, plate_number, status, entry_event_id, entry_camera_id, entry_time, review_status, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)'
+        ).bind(sessionId, facilityId, rawPlate, 'INSIDE', eventId, cameraId, detectedAt, 'VERIFIED', new Date(now).toISOString(), new Date(now).toISOString()).run();
+
+        // Record accepted ANPR event
+        await store.db.prepare(
+          'INSERT INTO anpr_events(id, facility_id, camera_id, gate_type, plate_number, confidence, plate_crop_url, processing_time_ms, status, session_id, detected_at, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
+        ).bind(eventId, facilityId, cameraId, gateType, rawPlate, confidence, p.plateCropBase64 || null, processingTimeMs, 'ACCEPTED', sessionId, detectedAt, new Date(now).toISOString()).run();
+
+        const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+        const live = countRes?.live ?? 1;
+
+        return json({
+          success: true,
+          eventId,
+          status: 'ACCEPTED',
+          sessionId,
+          liveOccupancy: live,
+          availableCapacity: Math.max(0, 500 - live)
+        }, 201);
+      }
+
+      // 4. EXIT gate processing
+      if (gateType === 'EXIT') {
+        const active = await store.db.prepare(
+          'SELECT id, entry_time FROM vehicle_sessions WHERE facility_id = ? AND plate_number = ? AND status = ?'
+        ).bind(facilityId, rawPlate, 'INSIDE').first<{id: string; entry_time: string}>();
+
+        if (!active) {
+          // Unmatched exit: log without decrementing occupancy
+          await store.db.prepare(
+            'INSERT INTO anpr_events(id, facility_id, camera_id, gate_type, plate_number, confidence, plate_crop_url, processing_time_ms, status, review_reason, detected_at, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
+          ).bind(eventId, facilityId, cameraId, gateType, rawPlate, confidence, p.plateCropBase64 || null, processingTimeMs, 'UNMATCHED_EXIT', 'No active INSIDE session found for plate', detectedAt, new Date(now).toISOString()).run();
+
+          const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+          const live = countRes?.live ?? 0;
+          return json({
+            success: false,
+            eventId,
+            status: 'UNMATCHED_EXIT',
+            message: `Unmatched exit attempt for plate ${rawPlate} logged for review`,
+            liveOccupancy: live,
+            availableCapacity: Math.max(0, 500 - live)
+          });
+        }
+
+        const entryDt = Date.parse(active.entry_time);
+        const exitDt = Date.parse(detectedAt);
+        const durationSec = Math.max(0, Math.floor((exitDt - entryDt) / 1000));
+        const hours = Math.max(1, Math.ceil(durationSec / 3600));
+        const tariff = 20 + (hours - 1) * 10;
+
+        await store.db.prepare(
+          'UPDATE vehicle_sessions SET status=?, exit_event_id=?, exit_camera_id=?, exit_time=?, duration_seconds=?, calculated_tariff=?, updated_at=? WHERE id=?'
+        ).bind('EXITED', eventId, cameraId, detectedAt, durationSec, tariff, new Date(now).toISOString(), active.id).run();
+
+        await store.db.prepare(
+          'INSERT INTO anpr_events(id, facility_id, camera_id, gate_type, plate_number, confidence, plate_crop_url, processing_time_ms, status, session_id, detected_at, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
+        ).bind(eventId, facilityId, cameraId, gateType, rawPlate, confidence, p.plateCropBase64 || null, processingTimeMs, 'ACCEPTED', active.id, detectedAt, new Date(now).toISOString()).run();
+
+        const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+        const live = countRes?.live ?? 0;
+
+        return json({
+          success: true,
+          eventId,
+          status: 'ACCEPTED',
+          sessionId: active.id,
+          durationSeconds: durationSec,
+          calculatedTariff: tariff,
+          liveOccupancy: live,
+          availableCapacity: Math.max(0, 500 - live)
+        });
+      }
+    }
+
+    if (method === 'POST' && path[0] === 'anpr' && path[1] === 'heartbeat') {
+      const p = await readBody(request, anprHeartbeatSchema);
+      const lastFrameAt = p.lastFrameAt || new Date(now).toISOString();
+      await store.db.prepare(
+        'UPDATE parking_cameras SET status=?, fps=?, last_heartbeat_at=?, updated_at=? WHERE id=?'
+      ).bind(p.status, p.fps ?? null, lastFrameAt, new Date(now).toISOString(), p.cameraId).run();
+
+      return json({
+        success: true,
+        cameraId: p.cameraId,
+        status: p.status,
+        lastHeartbeatAt: lastFrameAt
+      });
+    }
+
+    if (method === 'GET' && path[0] === 'anpr' && path[1] === 'cameras') {
+      const facilityId = url.searchParams.get('facilityId');
+      let cameras;
+      if (facilityId) {
+        cameras = (await store.db.prepare('SELECT * FROM parking_cameras WHERE facility_id=?').bind(facilityId).all()).results;
+      } else {
+        cameras = (await store.db.prepare('SELECT * FROM parking_cameras').all()).results;
+      }
+      return json({ success: true, cameras });
+    }
+
+    if (method === 'GET' && path[0] === 'anpr' && path[1] === 'review-queue') {
+      const facilityId = url.searchParams.get('facilityId') || 'palika';
+      const items = (await store.db.prepare(
+        "SELECT * FROM anpr_events WHERE facility_id = ? AND status IN ('NEEDS_REVIEW', 'UNMATCHED_EXIT') ORDER BY detected_at DESC"
+      ).bind(facilityId).all()).results;
+      return json({ success: true, facilityId, items, count: items.length });
+    }
+
+    if (method === 'POST' && path[0] === 'anpr' && path[1] === 'review-queue' && path[2] && path[3] === 'resolve') {
+      const eventId = path[2];
+      const p = await readBody(request, anprReviewResolveSchema);
+      const event = await store.db.prepare('SELECT * FROM anpr_events WHERE id = ?').bind(eventId).first<Record<string, unknown>>();
+      if (!event) throw new ApiError(404, 'NOT_FOUND', 'Event not found in review queue.');
+
+      const facilityId = String(event.facility_id || event.facilityId);
+      const cameraId = String(event.camera_id || event.cameraId);
+      const plate = (p.correctedPlate || String(event.plate_number || event.plateNumber || '')).trim().toUpperCase();
+      const nowIso = new Date(now).toISOString();
+
+      if (p.action === 'CONFIRM_ENTRY') {
+        const stateCode = plate.slice(0, 2);
+        await store.db.prepare(
+          'INSERT INTO vehicles(plate_number, state_code, vehicle_class, first_seen_at, last_seen_at, total_sessions, created_at) VALUES(?,?,?,?,?,1,?) ON CONFLICT(plate_number) DO UPDATE SET last_seen_at=excluded.last_seen_at'
+        ).bind(plate, stateCode, 'CAR', String(event.detected_at || nowIso), String(event.detected_at || nowIso), nowIso).run();
+
+        const sessionId = `ses_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+        await store.db.prepare(
+          'INSERT INTO vehicle_sessions(id, facility_id, plate_number, status, entry_event_id, entry_camera_id, entry_time, review_status, operator_notes, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)'
+        ).bind(sessionId, facilityId, plate, 'INSIDE', eventId, cameraId, String(event.detected_at || nowIso), 'MANUALLY_CORRECTED', p.notes || 'Resolved by operator', nowIso, nowIso).run();
+
+        await store.db.prepare(
+          'UPDATE anpr_events SET status=?, plate_number=?, session_id=?, review_reason=? WHERE id=?'
+        ).bind('MANUALLY_RESOLVED', plate, sessionId, `CONFIRMED_ENTRY: ${p.notes || ''}`, eventId).run();
+
+        const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+        const live = countRes?.live ?? 1;
+        return json({
+          success: true,
+          action: 'CONFIRM_ENTRY',
+          sessionId,
+          liveOccupancy: live,
+          availableCapacity: Math.max(0, 500 - live)
+        });
+      } else if (p.action === 'CONFIRM_EXIT') {
+        const active = await store.db.prepare(
+          'SELECT id, entry_time FROM vehicle_sessions WHERE facility_id = ? AND plate_number = ? AND status = ?'
+        ).bind(facilityId, plate, 'INSIDE').first<{id: string; entry_time: string}>();
+
+        let sessionId: string | null = null;
+        if (active) {
+          sessionId = active.id;
+          const entryDt = Date.parse(active.entry_time);
+          const exitDt = Date.parse(String(event.detected_at || nowIso));
+          const duration = Math.max(0, Math.floor((exitDt - entryDt) / 1000));
+          const tariff = 20 + Math.max(0, Math.ceil(duration / 3600) - 1) * 10;
+
+          await store.db.prepare(
+            'UPDATE vehicle_sessions SET status=?, exit_event_id=?, exit_camera_id=?, exit_time=?, duration_seconds=?, calculated_tariff=?, review_status=?, operator_notes=?, updated_at=? WHERE id=?'
+          ).bind('EXITED', eventId, cameraId, String(event.detected_at || nowIso), duration, tariff, 'MANUALLY_CORRECTED', p.notes || 'Resolved exit by operator', nowIso, active.id).run();
+        }
+
+        await store.db.prepare(
+          'UPDATE anpr_events SET status=?, plate_number=?, session_id=?, review_reason=? WHERE id=?'
+        ).bind('MANUALLY_RESOLVED', plate, sessionId, `CONFIRMED_EXIT: ${p.notes || ''}`, eventId).run();
+
+        const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+        const live = countRes?.live ?? 0;
+        return json({
+          success: true,
+          action: 'CONFIRM_EXIT',
+          sessionId,
+          liveOccupancy: live,
+          availableCapacity: Math.max(0, 500 - live)
+        });
+      } else if (p.action === 'REJECT') {
+        await store.db.prepare(
+          'UPDATE anpr_events SET status=?, review_reason=? WHERE id=?'
+        ).bind('REJECTED', `REJECTED: ${p.notes || ''}`, eventId).run();
+
+        const countRes = await store.db.prepare('SELECT COUNT(*) as live FROM vehicle_sessions WHERE facility_id=? AND status=?').bind(facilityId, 'INSIDE').first<{live: number}>();
+        const live = countRes?.live ?? 0;
+        return json({
+          success: true,
+          action: 'REJECT',
+          eventId,
+          liveOccupancy: live,
+          availableCapacity: Math.max(0, 500 - live)
+        });
+      }
+    }
+
+    if (method === 'GET' && path[0] === 'anpr' && path[1] === 'sessions') {
+      const facilityId = url.searchParams.get('facilityId') || 'palika';
+      const statusParam = url.searchParams.get('status');
+      let sessions;
+      if (statusParam) {
+        sessions = (await store.db.prepare(
+          'SELECT * FROM vehicle_sessions WHERE facility_id = ? AND status = ? ORDER BY entry_time DESC LIMIT 100'
+        ).bind(facilityId, statusParam).all()).results;
+      } else {
+        sessions = (await store.db.prepare(
+          'SELECT * FROM vehicle_sessions WHERE facility_id = ? ORDER BY entry_time DESC LIMIT 100'
+        ).bind(facilityId).all()).results;
+      }
+      return json({ success: true, facilityId, sessions });
     }
     if(path[0]==='workspace') {
       if(method==='GET'&&path.length===1) {

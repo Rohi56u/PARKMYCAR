@@ -1,12 +1,181 @@
 import type { Database, Statement, SqlResult } from './store';
 import { initialFacilities, CATALOGUE_VERSION } from './catalogue';
 
+export type CameraRecord = {
+  id: string;
+  facilityId: string;
+  name: string;
+  feedType: 'USB' | 'IP_RTSP' | 'VIDEO_FILE' | 'SIMULATION';
+  streamUrl: string | null;
+  gateType: 'ENTRY' | 'EXIT' | 'BIDIRECTIONAL';
+  status: 'ONLINE' | 'DEGRADED' | 'OFFLINE' | 'SIMULATING';
+  lastHeartbeatAt: string | null;
+  fps: number | null;
+  config: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleRecord = {
+  plateNumber: string;
+  stateCode: string | null;
+  vehicleClass: 'CAR' | 'TWO_WHEELER' | 'COMMERCIAL' | 'UNKNOWN';
+  firstSeenAt: string;
+  lastSeenAt: string;
+  totalSessions: number;
+  createdAt: string;
+};
+
+export type VehicleSessionRecord = {
+  id: string;
+  facilityId: string;
+  plateNumber: string;
+  status: 'INSIDE' | 'EXITED' | 'OVERSTAY' | 'NEEDS_REVIEW' | 'CANCELLED';
+  entryEventId: string | null;
+  entryCameraId: string | null;
+  entryTime: string;
+  exitEventId: string | null;
+  exitCameraId: string | null;
+  exitTime: string | null;
+  durationSeconds: number | null;
+  calculatedTariff: number | null;
+  reviewStatus: 'VERIFIED' | 'NEEDS_REVIEW' | 'MANUALLY_CORRECTED' | 'REJECTED' | null;
+  operatorNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AnprEventRecord = {
+  id: string;
+  facilityId: string;
+  cameraId: string;
+  gateType: 'ENTRY' | 'EXIT';
+  plateNumber: string;
+  confidence: number;
+  plateCropUrl: string | null;
+  fullFrameUrl: string | null;
+  processingTimeMs: number | null;
+  status: 'ACCEPTED' | 'COOLDOWN_IGNORED' | 'NEEDS_REVIEW' | 'MANUALLY_RESOLVED' | 'UNMATCHED_EXIT' | 'REJECTED';
+  reviewReason: string | null;
+  sessionId: string | null;
+  detectedAt: string;
+  createdAt: string;
+};
+
+function formatCamera(c: CameraRecord) {
+  return {
+    id: c.id,
+    facility_id: c.facilityId,
+    facilityId: c.facilityId,
+    name: c.name,
+    feed_type: c.feedType,
+    feedType: c.feedType,
+    stream_url: c.streamUrl,
+    streamUrl: c.streamUrl,
+    gate_type: c.gateType,
+    gateType: c.gateType,
+    status: c.status,
+    last_heartbeat_at: c.lastHeartbeatAt,
+    lastHeartbeatAt: c.lastHeartbeatAt,
+    fps: c.fps,
+    config: c.config,
+    created_at: c.createdAt,
+    createdAt: c.createdAt,
+    updated_at: c.updatedAt,
+    updatedAt: c.updatedAt
+  };
+}
+
+function formatVehicle(v: VehicleRecord) {
+  return {
+    plate_number: v.plateNumber,
+    plateNumber: v.plateNumber,
+    state_code: v.stateCode,
+    stateCode: v.stateCode,
+    vehicle_class: v.vehicleClass,
+    vehicleClass: v.vehicleClass,
+    first_seen_at: v.firstSeenAt,
+    firstSeenAt: v.firstSeenAt,
+    last_seen_at: v.lastSeenAt,
+    lastSeenAt: v.lastSeenAt,
+    total_sessions: v.totalSessions,
+    totalSessions: v.totalSessions,
+    created_at: v.createdAt,
+    createdAt: v.createdAt
+  };
+}
+
+function formatSession(s: VehicleSessionRecord) {
+  return {
+    id: s.id,
+    facility_id: s.facilityId,
+    facilityId: s.facilityId,
+    plate_number: s.plateNumber,
+    plateNumber: s.plateNumber,
+    status: s.status,
+    entry_event_id: s.entryEventId,
+    entryEventId: s.entryEventId,
+    entry_camera_id: s.entryCameraId,
+    entryCameraId: s.entryCameraId,
+    entry_time: s.entryTime,
+    entryTime: s.entryTime,
+    exit_event_id: s.exitEventId,
+    exitEventId: s.exitEventId,
+    exit_camera_id: s.exitCameraId,
+    exitCameraId: s.exitCameraId,
+    exit_time: s.exitTime,
+    exitTime: s.exitTime,
+    duration_seconds: s.durationSeconds,
+    durationSeconds: s.durationSeconds,
+    calculated_tariff: s.calculatedTariff,
+    calculatedTariff: s.calculatedTariff,
+    review_status: s.reviewStatus,
+    reviewStatus: s.reviewStatus,
+    operator_notes: s.operatorNotes,
+    operatorNotes: s.operatorNotes,
+    created_at: s.createdAt,
+    createdAt: s.createdAt,
+    updated_at: s.updatedAt,
+    updatedAt: s.updatedAt
+  };
+}
+
+function formatAnprEvent(e: AnprEventRecord) {
+  return {
+    id: e.id,
+    facility_id: e.facilityId,
+    facilityId: e.facilityId,
+    camera_id: e.cameraId,
+    cameraId: e.cameraId,
+    gate_type: e.gateType,
+    gateType: e.gateType,
+    plate_number: e.plateNumber,
+    plateNumber: e.plateNumber,
+    confidence: e.confidence,
+    plate_crop_url: e.plateCropUrl,
+    plateCropUrl: e.plateCropUrl,
+    full_frame_url: e.fullFrameUrl,
+    fullFrameUrl: e.fullFrameUrl,
+    processing_time_ms: e.processingTimeMs,
+    processingTimeMs: e.processingTimeMs,
+    status: e.status,
+    review_reason: e.reviewReason,
+    reviewReason: e.reviewReason,
+    session_id: e.sessionId,
+    sessionId: e.sessionId,
+    detected_at: e.detectedAt,
+    detectedAt: e.detectedAt,
+    created_at: e.createdAt,
+    createdAt: e.createdAt
+  };
+}
+
 /**
  * Universal in-memory database engine implementing the Database interface.
  * Zero native C++ or external binary dependencies.
  * Ensures zero-configuration deployment on Netlify, Vercel, Node 18/20/22+, Docker, and Serverless.
  */
-class MemoryDatabase implements Database {
+export class MemoryDatabase implements Database {
   private facilities = new Map<string, {
     id: string;
     name: string;
@@ -76,6 +245,12 @@ class MemoryDatabase implements Database {
     expiresAt: number;
   }>();
 
+  // ANPR collections
+  private cameras = new Map<string, CameraRecord>();
+  private vehicles = new Map<string, VehicleRecord>();
+  private vehicleSessions = new Map<string, VehicleSessionRecord>();
+  private anprEvents = new Map<string, AnprEventRecord>();
+
   constructor() {
     this.seedDefaults();
   }
@@ -101,6 +276,39 @@ class MemoryDatabase implements Database {
       facilityIds: '[]'
     });
     this.settings.set('owner', 'admin-rohit');
+
+    // Seed default cameras for Palika facility
+    if (!this.cameras.has('palika-entry-1')) {
+      const now = new Date().toISOString();
+      this.cameras.set('palika-entry-1', {
+        id: 'palika-entry-1',
+        facilityId: 'palika',
+        name: 'Palika Gate 1 (Entry)',
+        feedType: 'SIMULATION',
+        streamUrl: null,
+        gateType: 'ENTRY',
+        status: 'ONLINE',
+        lastHeartbeatAt: now,
+        fps: 25.0,
+        config: JSON.stringify({ simulatedIntervalMs: 5000 }),
+        createdAt: now,
+        updatedAt: now
+      });
+      this.cameras.set('palika-exit-1', {
+        id: 'palika-exit-1',
+        facilityId: 'palika',
+        name: 'Palika Gate 2 (Exit)',
+        feedType: 'SIMULATION',
+        streamUrl: null,
+        gateType: 'EXIT',
+        status: 'ONLINE',
+        lastHeartbeatAt: now,
+        fps: 25.0,
+        config: JSON.stringify({ simulatedIntervalMs: 7000 }),
+        createdAt: now,
+        updatedAt: now
+      });
+    }
   }
 
   prepare(sql: string): Statement {
@@ -273,7 +481,142 @@ class MemoryDatabase implements Database {
       return list as T[];
     }
 
-    // 13. INSERT INTO request_limits ... RETURNING count
+    // ==========================================
+    // ANPR SELECT QUERIES
+    // ==========================================
+
+    // 13. Live occupancy count: SELECT COUNT(*) as count FROM vehicle_sessions WHERE facility_id = ? AND status = 'INSIDE'
+    if (/SELECT COUNT\(\*\)(?:\s+as\s+[a-z0-9_]+)?\s+FROM vehicle_sessions/i.test(sql)) {
+      if (/facility_id\s*=\s*\?\s*AND status\s*=\s*('INSIDE'|\?)/i.test(sql)) {
+        const facilityId = String(params[0]);
+        const targetStatus = /'INSIDE'/.test(sql) ? 'INSIDE' : String(params[1]);
+        let count = 0;
+        for (const s of this.vehicleSessions.values()) {
+          if (s.facilityId === facilityId && s.status === targetStatus) {
+            count++;
+          }
+        }
+        return [{ count, 'COUNT(*)': count, live: count }] as T[];
+      }
+      // General count on vehicle_sessions
+      const count = this.vehicleSessions.size;
+      return [{ count, 'COUNT(*)': count, live: count }] as T[];
+    }
+
+    // 14. Active session lookup: SELECT * FROM vehicle_sessions WHERE facility_id = ? AND plate_number = ? AND status = 'INSIDE'
+    if (/FROM vehicle_sessions WHERE facility_id\s*=\s*\?\s*AND plate_number\s*=\s*\?\s*AND status\s*=\s*('INSIDE'|\?)/i.test(sql)) {
+      const facilityId = String(params[0]);
+      const plateNumber = String(params[1]).trim().toUpperCase();
+      const targetStatus = /'INSIDE'/.test(sql) ? 'INSIDE' : String(params[2]);
+      for (const s of this.vehicleSessions.values()) {
+        if (s.facilityId === facilityId && s.plateNumber.toUpperCase() === plateNumber && s.status === targetStatus) {
+          return [formatSession(s)] as T[];
+        }
+      }
+      return [] as T[];
+    }
+
+    // 15. Vehicle session by ID: SELECT * FROM vehicle_sessions WHERE id = ?
+    if (/FROM vehicle_sessions WHERE id\s*=\s*\?/i.test(sql)) {
+      const id = String(params[0]);
+      const s = this.vehicleSessions.get(id);
+      return (s ? [formatSession(s)] : []) as T[];
+    }
+
+    // 16. Session list: SELECT * FROM vehicle_sessions WHERE facility_id = ? ORDER BY entry_time DESC LIMIT ?
+    if (/FROM vehicle_sessions WHERE facility_id\s*=\s*\?/i.test(sql)) {
+      const facilityId = String(params[0]);
+      const limit = typeof params[1] === 'number' ? params[1] : 100;
+      const matched = Array.from(this.vehicleSessions.values())
+        .filter(s => s.facilityId === facilityId)
+        .sort((a, b) => b.entryTime.localeCompare(a.entryTime))
+        .slice(0, limit)
+        .map(formatSession);
+      return matched as T[];
+    }
+
+    // 17. Vehicle session by plate: SELECT * FROM vehicle_sessions WHERE plate_number = ?
+    if (/FROM vehicle_sessions WHERE plate_number\s*=\s*\?/i.test(sql)) {
+      const plate = String(params[0]).trim().toUpperCase();
+      const matched = Array.from(this.vehicleSessions.values())
+        .filter(s => s.plateNumber.toUpperCase() === plate)
+        .sort((a, b) => b.entryTime.localeCompare(a.entryTime))
+        .map(formatSession);
+      return matched as T[];
+    }
+
+    // 18. Parking camera by ID: SELECT * FROM parking_cameras WHERE id = ?
+    if (/FROM parking_cameras WHERE id\s*=\s*\?/i.test(sql)) {
+      const id = String(params[0]);
+      const c = this.cameras.get(id);
+      return (c ? [formatCamera(c)] : []) as T[];
+    }
+
+    // 19. Parking cameras by facility: SELECT * FROM parking_cameras WHERE facility_id = ?
+    if (/FROM parking_cameras WHERE facility_id\s*=\s*\?/i.test(sql)) {
+      const facilityId = String(params[0]);
+      const matched = Array.from(this.cameras.values())
+        .filter(c => c.facilityId === facilityId)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(formatCamera);
+      return matched as T[];
+    }
+
+    // 20. All parking cameras: SELECT * FROM parking_cameras
+    if (/FROM parking_cameras/i.test(sql)) {
+      const all = Array.from(this.cameras.values())
+        .sort((a, b) => a.facilityId.localeCompare(b.facilityId) || a.name.localeCompare(b.name))
+        .map(formatCamera);
+      return all as T[];
+    }
+
+    // 21. Vehicle by plate: SELECT * FROM vehicles WHERE plate_number = ?
+    if (/FROM vehicles WHERE plate_number\s*=\s*\?/i.test(sql)) {
+      const plate = String(params[0]).trim().toUpperCase();
+      const v = this.vehicles.get(plate);
+      return (v ? [formatVehicle(v)] : []) as T[];
+    }
+
+    // 22. ANPR review queue: SELECT * FROM anpr_events WHERE facility_id = ? AND status IN ('NEEDS_REVIEW', 'UNMATCHED_EXIT') ORDER BY detected_at DESC
+    if (/FROM anpr_events WHERE facility_id\s*=\s*\?\s*AND status IN \('NEEDS_REVIEW',\s*'UNMATCHED_EXIT'\)/i.test(sql)) {
+      const facilityId = String(params[0]);
+      const matched = Array.from(this.anprEvents.values())
+        .filter(e => e.facilityId === facilityId && (e.status === 'NEEDS_REVIEW' || e.status === 'UNMATCHED_EXIT'))
+        .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
+        .map(formatAnprEvent);
+      return matched as T[];
+    }
+
+    // 23. ANPR cooldown check: SELECT * FROM anpr_events WHERE camera_id = ? AND plate_number = ? AND detected_at > ?
+    if (/FROM anpr_events WHERE camera_id\s*=\s*\?\s*AND plate_number\s*=\s*\?\s*AND detected_at\s*>\s*\?/i.test(sql)) {
+      const cameraId = String(params[0]);
+      const plateNumber = String(params[1]).trim().toUpperCase();
+      const threshold = String(params[2]);
+      const matched = Array.from(this.anprEvents.values())
+        .filter(e => e.cameraId === cameraId && e.plateNumber.toUpperCase() === plateNumber && e.detectedAt > threshold)
+        .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
+        .map(formatAnprEvent);
+      return matched as T[];
+    }
+
+    // 24. ANPR event by ID: SELECT * FROM anpr_events WHERE id = ?
+    if (/FROM anpr_events WHERE id\s*=\s*\?/i.test(sql)) {
+      const id = String(params[0]);
+      const e = this.anprEvents.get(id);
+      return (e ? [formatAnprEvent(e)] : []) as T[];
+    }
+
+    // 25. ANPR events by facility: SELECT * FROM anpr_events WHERE facility_id = ?
+    if (/FROM anpr_events WHERE facility_id\s*=\s*\?/i.test(sql)) {
+      const facilityId = String(params[0]);
+      const matched = Array.from(this.anprEvents.values())
+        .filter(e => e.facilityId === facilityId)
+        .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
+        .map(formatAnprEvent);
+      return matched as T[];
+    }
+
+    // 26. INSERT INTO request_limits ... RETURNING count
     if (/INSERT INTO request_limits/i.test(sql) && /RETURNING count/i.test(sql)) {
       const [key, expiresAt] = params as [string, number];
       const existing = this.requestLimits.get(key);
@@ -286,7 +629,7 @@ class MemoryDatabase implements Database {
       return [{ count: 1 }] as T[];
     }
 
-    // 14. INSERT INTO request_limits ... RETURNING expires_at
+    // 27. INSERT INTO request_limits ... RETURNING expires_at
     if (/INSERT INTO request_limits/i.test(sql) && /RETURNING expires_at/i.test(sql)) {
       const [key, nextExpiresAt, currentNow] = params as [string, number, number];
       const existing = this.requestLimits.get(key);
@@ -431,7 +774,332 @@ class MemoryDatabase implements Database {
       return 1;
     }
 
-    // 17. Pruning DELETES
+    // ==========================================
+    // ANPR MUTATIONS
+    // ==========================================
+
+    // 17. INSERT INTO vehicle_sessions (Enforce Partial Unique Index)
+    if (/INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+vehicle_sessions/i.test(sql)) {
+      const colMatch = sql.match(/INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+vehicle_sessions\s*\(([^)]+)\)\s*VALUES/i);
+      let session: VehicleSessionRecord;
+      if (colMatch) {
+        const colNames = colMatch[1].split(',').map(c => c.trim().replace(/[`"]/g, ''));
+        const record: Record<string, unknown> = {};
+        colNames.forEach((col, idx) => {
+          const camelKey = col.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
+          record[camelKey] = params[idx];
+        });
+        session = {
+          id: String(record.id),
+          facilityId: String(record.facilityId),
+          plateNumber: String(record.plateNumber).trim().toUpperCase(),
+          status: record.status as VehicleSessionRecord['status'],
+          entryEventId: (record.entryEventId as string) ?? null,
+          entryCameraId: (record.entryCameraId as string) ?? null,
+          entryTime: String(record.entryTime),
+          exitEventId: (record.exitEventId as string) ?? null,
+          exitCameraId: (record.exitCameraId as string) ?? null,
+          exitTime: (record.exitTime as string) ?? null,
+          durationSeconds: typeof record.durationSeconds === 'number' ? record.durationSeconds : null,
+          calculatedTariff: typeof record.calculatedTariff === 'number' ? record.calculatedTariff : null,
+          reviewStatus: (record.reviewStatus as VehicleSessionRecord['reviewStatus']) ?? null,
+          operatorNotes: (record.operatorNotes as string) ?? null,
+          createdAt: String(record.createdAt ?? new Date().toISOString()),
+          updatedAt: String(record.updatedAt ?? new Date().toISOString())
+        };
+      } else {
+        const [
+          id, facilityId, plateNumber, status,
+          entryEventId, entryCameraId, entryTime,
+          exitEventId, exitCameraId, exitTime,
+          durationSeconds, calculatedTariff, reviewStatus, operatorNotes,
+          createdAt, updatedAt
+        ] = params as [
+          string, string, string, VehicleSessionRecord['status'],
+          string | null, string | null, string,
+          string | null, string | null, string | null,
+          number | null, number | null, VehicleSessionRecord['reviewStatus'], string | null,
+          string, string
+        ];
+        session = {
+          id, facilityId, plateNumber: plateNumber.trim().toUpperCase(), status,
+          entryEventId: entryEventId ?? null, entryCameraId: entryCameraId ?? null, entryTime,
+          exitEventId: exitEventId ?? null, exitCameraId: exitCameraId ?? null, exitTime: exitTime ?? null,
+          durationSeconds: durationSeconds ?? null, calculatedTariff: calculatedTariff ?? null,
+          reviewStatus: reviewStatus ?? null, operatorNotes: operatorNotes ?? null,
+          createdAt, updatedAt
+        };
+      }
+
+      // STRICTLY enforce partial unique constraint:
+      // CREATE UNIQUE INDEX unique_active_vehicle_session ON vehicle_sessions(facility_id, plate_number) WHERE status = 'INSIDE';
+      if (session.status === 'INSIDE') {
+        for (const existing of this.vehicleSessions.values()) {
+          if (existing.facilityId === session.facilityId &&
+              existing.plateNumber.toUpperCase() === session.plateNumber.toUpperCase() &&
+              existing.status === 'INSIDE') {
+            if (/INSERT\s+OR\s+IGNORE/i.test(sql)) {
+              return 0;
+            }
+            throw new Error('SQLITE_CONSTRAINT: UNIQUE constraint failed: vehicle_sessions.facility_id, vehicle_sessions.plate_number');
+          }
+        }
+      }
+
+      this.vehicleSessions.set(session.id, session);
+      return 1;
+    }
+
+    // 18. UPDATE vehicle_sessions SET status = 'EXITED' ... WHERE id = ? AND status = 'INSIDE'
+    if (/UPDATE vehicle_sessions SET/i.test(sql)) {
+      const requiresInside = /WHERE.*status\s*=\s*['"]INSIDE['"]/i.test(sql);
+      let targetSession: VehicleSessionRecord | undefined;
+      for (let i = params.length - 1; i >= 0; i--) {
+        const val = String(params[i]);
+        if (this.vehicleSessions.has(val)) {
+          targetSession = this.vehicleSessions.get(val);
+          break;
+        }
+      }
+      if (!targetSession) return 0;
+      if (requiresInside && targetSession.status !== 'INSIDE') {
+        return 0;
+      }
+
+      const setPart = sql.substring(sql.toUpperCase().indexOf('SET') + 3, sql.toUpperCase().indexOf('WHERE')).trim();
+      const assignments = setPart.split(',').map(a => a.trim());
+      let pIdx = 0;
+      for (const assign of assignments) {
+        const [col, expr] = assign.split('=').map(s => s.trim().replace(/[`"]/g, ''));
+        if (expr === '?') {
+          const val = params[pIdx++];
+          if (/exit_event_id/i.test(col)) targetSession.exitEventId = val as string;
+          else if (/exit_camera_id/i.test(col)) targetSession.exitCameraId = val as string;
+          else if (/exit_time/i.test(col)) targetSession.exitTime = val as string;
+          else if (/duration_seconds/i.test(col)) targetSession.durationSeconds = Number(val);
+          else if (/calculated_tariff/i.test(col)) targetSession.calculatedTariff = Number(val);
+          else if (/review_status/i.test(col)) targetSession.reviewStatus = val as VehicleSessionRecord['reviewStatus'];
+          else if (/operator_notes/i.test(col)) targetSession.operatorNotes = val as string;
+          else if (/status/i.test(col)) targetSession.status = val as VehicleSessionRecord['status'];
+          else if (/updated_at/i.test(col)) targetSession.updatedAt = val as string;
+        } else {
+          const literal = expr.replace(/['"]/g, '');
+          if (/status/i.test(col)) targetSession.status = literal as VehicleSessionRecord['status'];
+        }
+      }
+      return 1;
+    }
+
+    // 19. INSERT INTO vehicles ... ON CONFLICT(plate_number) DO UPDATE ...
+    if (/INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+vehicles/i.test(sql)) {
+      const colMatch = sql.match(/INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+vehicles\s*\(([^)]+)\)\s*VALUES/i);
+      let vPlate = '';
+      let vState: string | null = null;
+      let vClass: VehicleRecord['vehicleClass'] = 'CAR';
+      let vFirstSeen = new Date().toISOString();
+      let vLastSeen = new Date().toISOString();
+      let vTotalSessions = 1;
+      let vCreatedAt = new Date().toISOString();
+
+      if (colMatch) {
+        const colNames = colMatch[1].split(',').map(c => c.trim().replace(/[`"]/g, ''));
+        colNames.forEach((col, idx) => {
+          const val = params[idx];
+          if (/plate_number/i.test(col)) vPlate = String(val).trim().toUpperCase();
+          else if (/state_code/i.test(col)) vState = val ? String(val) : null;
+          else if (/vehicle_class/i.test(col)) vClass = val as VehicleRecord['vehicleClass'];
+          else if (/first_seen_at/i.test(col)) vFirstSeen = String(val);
+          else if (/last_seen_at/i.test(col)) vLastSeen = String(val);
+          else if (/total_sessions/i.test(col)) vTotalSessions = Number(val);
+          else if (/created_at/i.test(col)) vCreatedAt = String(val);
+        });
+      } else {
+        const [plate, state, vcls, first, last, total, created] = params as [string, string | null, VehicleRecord['vehicleClass'], string, string, number, string];
+        vPlate = plate.trim().toUpperCase();
+        vState = state ?? null;
+        vClass = vcls ?? 'CAR';
+        vFirstSeen = first;
+        vLastSeen = last;
+        vTotalSessions = total ?? 1;
+        vCreatedAt = created;
+      }
+
+      const existing = this.vehicles.get(vPlate);
+      if (existing) {
+        if (/ON CONFLICT/i.test(sql)) {
+          existing.lastSeenAt = vLastSeen;
+          existing.totalSessions += 1;
+          if (vState) existing.stateCode = vState;
+          return 1;
+        }
+        if (/INSERT\s+OR\s+IGNORE/i.test(sql)) {
+          return 0;
+        }
+        existing.lastSeenAt = vLastSeen;
+        existing.totalSessions += 1;
+        return 1;
+      }
+
+      this.vehicles.set(vPlate, {
+        plateNumber: vPlate,
+        stateCode: vState,
+        vehicleClass: vClass,
+        firstSeenAt: vFirstSeen,
+        lastSeenAt: vLastSeen,
+        totalSessions: vTotalSessions,
+        createdAt: vCreatedAt
+      });
+      return 1;
+    }
+
+    // 20. INSERT INTO anpr_events ...
+    if (/INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+anpr_events/i.test(sql)) {
+      const colMatch = sql.match(/INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+anpr_events\s*\(([^)]+)\)\s*VALUES/i);
+      let event: AnprEventRecord;
+      if (colMatch) {
+        const colNames = colMatch[1].split(',').map(c => c.trim().replace(/[`"]/g, ''));
+        const record: Record<string, unknown> = {};
+        colNames.forEach((col, idx) => {
+          const camelKey = col.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
+          record[camelKey] = params[idx];
+        });
+        event = {
+          id: String(record.id),
+          facilityId: String(record.facilityId),
+          cameraId: String(record.cameraId),
+          gateType: record.gateType as AnprEventRecord['gateType'],
+          plateNumber: String(record.plateNumber).trim().toUpperCase(),
+          confidence: Number(record.confidence),
+          plateCropUrl: (record.plateCropUrl as string) ?? null,
+          fullFrameUrl: (record.fullFrameUrl as string) ?? null,
+          processingTimeMs: typeof record.processingTimeMs === 'number' ? record.processingTimeMs : null,
+          status: record.status as AnprEventRecord['status'],
+          reviewReason: (record.reviewReason as string) ?? null,
+          sessionId: (record.sessionId as string) ?? null,
+          detectedAt: String(record.detectedAt),
+          createdAt: String(record.createdAt ?? new Date().toISOString())
+        };
+      } else {
+        const [
+          id, facilityId, cameraId, gateType, plateNumber, confidence,
+          plateCropUrl, fullFrameUrl, processingTimeMs, status, reviewReason,
+          sessionId, detectedAt, createdAt
+        ] = params as [
+          string, string, string, AnprEventRecord['gateType'], string, number,
+          string | null, string | null, number | null, AnprEventRecord['status'], string | null,
+          string | null, string, string
+        ];
+        event = {
+          id, facilityId, cameraId, gateType, plateNumber: plateNumber.trim().toUpperCase(), confidence,
+          plateCropUrl: plateCropUrl ?? null, fullFrameUrl: fullFrameUrl ?? null, processingTimeMs: processingTimeMs ?? null,
+          status, reviewReason: reviewReason ?? null, sessionId: sessionId ?? null,
+          detectedAt, createdAt
+        };
+      }
+
+      this.anprEvents.set(event.id, event);
+      return 1;
+    }
+
+    // 21. UPDATE anpr_events SET status = ?, review_reason = ?, session_id = ?, plate_number = ? WHERE id = ?
+    if (/UPDATE anpr_events SET/i.test(sql)) {
+      let targetEvent: AnprEventRecord | undefined;
+      for (let i = params.length - 1; i >= 0; i--) {
+        const val = String(params[i]);
+        if (this.anprEvents.has(val)) {
+          targetEvent = this.anprEvents.get(val);
+          break;
+        }
+      }
+      if (!targetEvent) return 0;
+      const setPart = sql.substring(sql.toUpperCase().indexOf('SET') + 3, sql.toUpperCase().indexOf('WHERE')).trim();
+      const assignments = setPart.split(',').map(a => a.trim());
+      let pIdx = 0;
+      for (const assign of assignments) {
+        const [col, expr] = assign.split('=').map(s => s.trim().replace(/[`"]/g, ''));
+        if (expr === '?') {
+          const val = params[pIdx++];
+          if (/status/i.test(col)) targetEvent.status = val as AnprEventRecord['status'];
+          else if (/review_reason/i.test(col)) targetEvent.reviewReason = val as string;
+          else if (/session_id/i.test(col)) targetEvent.sessionId = val as string;
+          else if (/plate_number/i.test(col)) targetEvent.plateNumber = String(val).trim().toUpperCase();
+        }
+      }
+      return 1;
+    }
+
+    // 22. INSERT INTO parking_cameras
+    if (/INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+parking_cameras/i.test(sql)) {
+      const colMatch = sql.match(/INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+parking_cameras\s*\(([^)]+)\)\s*VALUES/i);
+      let camera: CameraRecord;
+      if (colMatch) {
+        const colNames = colMatch[1].split(',').map(c => c.trim().replace(/[`"]/g, ''));
+        const record: Record<string, unknown> = {};
+        colNames.forEach((col, idx) => {
+          const camelKey = col.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
+          record[camelKey] = params[idx];
+        });
+        camera = {
+          id: String(record.id),
+          facilityId: String(record.facilityId),
+          name: String(record.name),
+          feedType: record.feedType as CameraRecord['feedType'],
+          streamUrl: (record.streamUrl as string) ?? null,
+          gateType: record.gateType as CameraRecord['gateType'],
+          status: (record.status as CameraRecord['status']) ?? 'OFFLINE',
+          lastHeartbeatAt: (record.lastHeartbeatAt as string) ?? null,
+          fps: typeof record.fps === 'number' ? record.fps : null,
+          config: (record.config as string) ?? null,
+          createdAt: String(record.createdAt ?? new Date().toISOString()),
+          updatedAt: String(record.updatedAt ?? new Date().toISOString())
+        };
+      } else {
+        const [id, facilityId, name, feedType, streamUrl, gateType, status, lastHeartbeatAt, fps, config, createdAt, updatedAt] = params as [
+          string, string, string, CameraRecord['feedType'], string | null, CameraRecord['gateType'],
+          CameraRecord['status'], string | null, number | null, string | null, string, string
+        ];
+        camera = {
+          id, facilityId, name, feedType, streamUrl: streamUrl ?? null, gateType,
+          status: status ?? 'OFFLINE', lastHeartbeatAt: lastHeartbeatAt ?? null, fps: fps ?? null, config: config ?? null,
+          createdAt, updatedAt
+        };
+      }
+
+      if (/INSERT\s+OR\s+IGNORE/i.test(sql) && this.cameras.has(camera.id)) {
+        return 0;
+      }
+      this.cameras.set(camera.id, camera);
+      return 1;
+    }
+
+    // 23. UPDATE parking_cameras SET status=?, fps=?, last_heartbeat_at=?, updated_at=? WHERE id=?
+    if (/UPDATE parking_cameras SET/i.test(sql)) {
+      let targetCamera: CameraRecord | undefined;
+      for (let i = params.length - 1; i >= 0; i--) {
+        const val = String(params[i]);
+        if (this.cameras.has(val)) {
+          targetCamera = this.cameras.get(val);
+          break;
+        }
+      }
+      if (!targetCamera) return 0;
+      const setPart = sql.substring(sql.toUpperCase().indexOf('SET') + 3, sql.toUpperCase().indexOf('WHERE')).trim();
+      const assignments = setPart.split(',').map(a => a.trim());
+      let pIdx = 0;
+      for (const assign of assignments) {
+        const [col, expr] = assign.split('=').map(s => s.trim().replace(/[`"]/g, ''));
+        if (expr === '?') {
+          const val = params[pIdx++];
+          if (/status/i.test(col)) targetCamera.status = val as CameraRecord['status'];
+          else if (/fps/i.test(col)) targetCamera.fps = Number(val);
+          else if (/last_heartbeat_at/i.test(col)) targetCamera.lastHeartbeatAt = val as string;
+          else if (/updated_at/i.test(col)) targetCamera.updatedAt = val as string;
+        }
+      }
+      return 1;
+    }
+
+    // 24. Pruning DELETES
     if (/DELETE FROM request_limits WHERE expires_at\s*<\s*\?/i.test(sql)) {
       const now = Number(params[0]);
       let removed = 0;
